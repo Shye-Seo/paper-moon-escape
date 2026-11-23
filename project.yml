@@ -27,7 +27,6 @@ targets:
       - path: App
     dependencies:
       - package: PaperMoonCore
-        product: PaperMoonCore
     settings:
       base:
         PRODUCT_NAME: PaperMoonEscape
@@ -51,8 +50,8 @@ targets:
     sources:
       - path: Tests
     dependencies:
+      - target: PaperMoonEscape
       - package: PaperMoonCore
-        product: PaperMoonCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quoguri.papermoonescape.tests
