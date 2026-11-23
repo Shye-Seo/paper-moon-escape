@@ -122,6 +122,8 @@ Xcode에서 `PaperMoonEscape` 스킴을 고르고 iPhone 시뮬레이터(예: iP
 ## 테스트
 
 ```bash
+./scripts/check_all.sh          # 아래 두 가지를 한 번에
+
 # 게임 규칙 (Core)
 cd Packages/PaperMoonCore && swift test
 
