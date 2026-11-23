@@ -4,6 +4,7 @@ import PaperMoonCore
 /// 화면 아래 주머니. 아이템을 고르면 씬에 쓰거나, 다른 아이템을 눌러 합친다.
 struct InventoryBarView: View {
     @ObservedObject var store: GameStore
+    var compact: Bool = false
 
     var body: some View {
         VStack(spacing: 6) {
@@ -32,7 +33,7 @@ struct InventoryBarView: View {
                         Text("아직 주머니가 비어 있다.")
                             .font(.cartoon(12, weight: .semibold))
                             .foregroundStyle(Palette.inkSoft.opacity(0.7))
-                            .padding(.vertical, 18)
+                            .padding(.vertical, compact ? 12 : 18)
                             .padding(.leading, 4)
                     }
 
@@ -43,9 +44,9 @@ struct InventoryBarView: View {
                 .padding(.horizontal, 14)
                 .padding(.bottom, 4)
             }
-            .frame(height: 76)
+            .frame(height: compact ? 64 : 76)
         }
-        .padding(.top, 6)
+        .padding(.top, compact ? 2 : 6)
         .padding(.bottom, 2)
     }
 
@@ -57,8 +58,8 @@ struct InventoryBarView: View {
         } label: {
             VStack(spacing: 2) {
                 Text(verbatim: item.glyph)
-                    .font(.system(size: 24))
-                    .frame(width: 44, height: 44)
+                    .font(.system(size: compact ? 20 : 24))
+                    .frame(width: compact ? 38 : 44, height: compact ? 38 : 44)
                     .background(
                         Circle().fill(isSelected ? Palette.mustard : Palette.cream)
                     )

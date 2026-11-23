@@ -2,41 +2,46 @@ import SwiftUI
 import PaperMoonCore
 
 /// 게임 본 화면: 씬 + 지점 + 주인공 + 인벤토리 + 힌트/퍼즐 오버레이.
+/// 세로가 길면 여유 있게, 가로처럼 높이가 낮으면 compact 모드로 씬을 줄인다.
 struct GameView: View {
     @ObservedObject var store: GameStore
     @State private var bounce = false
     @State private var pulse = false
 
     var body: some View {
-        ZStack {
-            PaperBackground()
+        GeometryReader { proxy in
+            let compact = proxy.size.height < 540
 
-            VStack(spacing: 0) {
-                topBar
-                sceneArea
-                narrationArea
-                InventoryBarView(store: store)
-            }
+            ZStack {
+                PaperBackground()
 
-            if let hint = store.hint {
-                HintOverlay(card: hint, onMore: store.askMoreHint, onClose: store.closeHint)
+                VStack(spacing: 0) {
+                    topBar(compact: compact)
+                    sceneArea(compact: compact)
+                    narrationArea(compact: compact)
+                    InventoryBarView(store: store, compact: compact)
+                }
+
+                if let hint = store.hint {
+                    HintOverlay(card: hint, onMore: store.askMoreHint, onClose: store.closeHint)
+                        .transition(.opacity)
+                }
+
+                if let puzzle = store.puzzle {
+                    PuzzleOverlay(
+                        puzzle: puzzle,
+                        misses: store.puzzleMisses,
+                        onSubmit: store.submitPuzzle,
+                        onClose: store.closePuzzle
+                    )
                     .transition(.opacity)
-            }
+                }
 
-            if let puzzle = store.puzzle {
-                PuzzleOverlay(
-                    puzzle: puzzle,
-                    misses: store.puzzleMisses,
-                    onSubmit: store.submitPuzzle,
-                    onClose: store.closePuzzle
-                )
-                .transition(.opacity)
-            }
-
-            if let flash = store.stageFlash, let cleared = store.stageInfo(for: flash) {
-                StageFlashView(stage: cleared)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
-                    .allowsHitTesting(false)
+                if let flash = store.stageFlash, let cleared = store.stageInfo(for: flash) {
+                    StageFlashView(stage: cleared)
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                        .allowsHitTesting(false)
+                }
             }
         }
         .animation(.easeInOut(duration: 0.28), value: store.hint?.id)
@@ -53,7 +58,7 @@ struct GameView: View {
 
     // MARK: 상단 바
 
-    private var topBar: some View {
+    private func topBar(compact: Bool) -> some View {
         HStack(spacing: 10) {
             RoundIconButton(systemName: "house.fill", accessibility: "타이틀 화면으로") {
                 store.backToTitle()
@@ -61,10 +66,10 @@ struct GameView: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(store.stage?.title ?? "종이달 다락방")
-                    .font(.cartoon(14, weight: .heavy))
+                    .font(.cartoon(compact ? 12.5 : 14, weight: .heavy))
                     .lineLimit(1)
                 Text(store.room.title + " · " + store.room.caption)
-                    .font(.cartoon(11, weight: .semibold))
+                    .font(.cartoon(compact ? 10 : 11, weight: .semibold))
                     .foregroundStyle(Palette.inkSoft)
                     .lineLimit(1)
             }
@@ -79,13 +84,13 @@ struct GameView: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.top, 6)
-        .padding(.bottom, 8)
+        .padding(.top, compact ? 2 : 6)
+        .padding(.bottom, compact ? 4 : 8)
     }
 
     // MARK: 씬
 
-    private var sceneArea: some View {
+    private func sceneArea(compact: Bool) -> some View {
         GeometryReader { geo in
             ZStack {
                 RoomSceneView(room: store.room)
@@ -102,7 +107,7 @@ struct GameView: View {
                     Spacer()
                 }
                 .padding(.leading, 8)
-                .padding(.bottom, 4)
+                .padding(.bottom, 2)
                 .allowsHitTesting(false)
 
                 HStack {
@@ -121,8 +126,8 @@ struct GameView: View {
                         Spacer()
                         HStack {
                             ReactionBubble(reaction: reaction)
-                                .padding(.leading, 26)
-                                .padding(.bottom, 96)
+                                .padding(.leading, 24)
+                                .padding(.bottom, 84)
                             Spacer()
                         }
                     }
@@ -138,7 +143,7 @@ struct GameView: View {
             .shadow(color: Palette.ink.opacity(0.16), radius: 0, x: 5, y: 6)
             .padding(.horizontal, 10)
         }
-        .frame(minHeight: 300)
+        .frame(minHeight: compact ? 160 : 300)
     }
 
     private func hotspotButton(_ hotspot: Hotspot, in size: CGSize) -> some View {
@@ -174,7 +179,7 @@ struct GameView: View {
 
     // MARK: 대사 영역
 
-    private var narrationArea: some View {
+    private func narrationArea(compact: Bool) -> some View {
         ZStack {
             if let bubble = store.bubble {
                 NarrationBubble(line: bubble.line)
@@ -182,11 +187,11 @@ struct GameView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else {
                 Text(store.room.caption)
-                    .font(.cartoon(12, weight: .semibold))
+                    .font(.cartoon(compact ? 11 : 12, weight: .semibold))
                     .foregroundStyle(Palette.inkSoft.opacity(0.8))
             }
         }
-        .frame(height: 92)
+        .frame(height: compact ? 68 : 92)
         .frame(maxWidth: .infinity)
     }
 }
