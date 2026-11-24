@@ -15,7 +15,7 @@ Test Suite 'All tests' passed
 Executed 55 tests, with 0 failures (0 unexpected) in 0.212 seconds
 ```
 
-(2026-11-24 코지 스타일 개편 이후 재실행. Linux Swift 5.10.1로 `Sources`와 `Tests`를 직접 컴파일해 돌렸다.)
+(2026-11-24 코지 스타일 개편 이후 재실행. Linux Swift 5.10.1의 `swift test`로 55개 전부 통과.)
 
 포함된 검증:
 
