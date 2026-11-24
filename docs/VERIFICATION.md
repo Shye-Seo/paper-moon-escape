@@ -41,7 +41,7 @@ Executed 145 tests, with 0 failures (0 unexpected) in 0.024 seconds
 | ScrapbookTests (13) | 12마리 분포, 수집·중복·다른 방 차단, 12마리 달성 시 서랍 개방, 선물 내용, 저장 왕복 |
 | DustWipeTests (6) | 먼지 초기값, 문지르기 범위, 반복 닦기, 흔들기, 전체 닦기 대안 |
 | DustPanelRuleTests (6) | 거울 판 열기, 단서 공개, 판 소멸, 중복 보상 방지, 다른 방 거부, 종 차단 해제 |
-| MotionInputTests (6) | 정지 상태, 흔들기 판정·쿨다운, 기울기 정규화, 변화 없음, 리셋, 흔들기→먼지 |
+| MotionInputTests (7) | 정지 상태, 흔들기 판정·쿨다운, 기울기 정규화, 변화 없음, 리셋, 흔들기→먼지 |
 | HintTests (6) | 1단계 방향 → 2단계 해법, 사용 횟수 집계, 목표 진행에 따른 힌트 이동 |
 | HintPassTests (2) | 무료 3회 소진 후 구매 안내, 패스 보유 시 계속 열람 |
 | StageLockTests (6) | 1장면 무료, 2·3장면 잠금, 클리어 시 구매 안내, 구매 후 즉시 해제 |
@@ -49,7 +49,7 @@ Executed 145 tests, with 0 failures (0 unexpected) in 0.024 seconds
 | CellarChapterTests (10) | 지하실 진입 조건, 철문 잠금, 손잡이 사용, 전체 플레이스루, 보너스 엔딩 분리 |
 | ProgressTests (8) | 전체 플레이스루(3장면 → 엔딩), 스테이지 전환·초기화, 재시작, 경과 시간 |
 | SaveTests (5) | JSON 왕복, 행동마다 자동 저장, 저장본 복원, 빈 저장소 |
-| ContentTests (13) | 콘텐츠 검증, 본편 3 + 보너스 1 구성, 퍼즐 7종 배치, 모든 아이템 획득 가능, 조합 5종, 종이학 12마리, 먼지 판 2개, 캐릭터 지점 ≥8 |
+| ContentTests (10) | 콘텐츠 검증, 본편 3 + 보너스 1 구성, 퍼즐 7종 배치, 모든 아이템 획득 가능, 조합 5종, 종이학 12마리, 먼지 판 2개, 캐릭터 지점 ≥8 |
 
 ## 2. 상태 레이어(App/GameStore) — 실제 타입체크
 
@@ -75,9 +75,9 @@ python3 scripts/verify_project.py
 
 ```
 Core  : 18개 파일, 4215줄, 타입 54개
-App   : 16개 파일, 4850줄, 타입 46개
+App   : 16개 파일, 4858줄, 타입 46개
 Tests : 20개 클래스, 155개 테스트
-합계  : 11199줄
+합계  : 11207줄
 문제 없음: 괄호 균형, 선언/참조 일치, Core 공개 API, 프로젝트 구조,
           4가지 오리지널 기능·IAP 배선, README 설명 모두 통과
 ```
