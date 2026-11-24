@@ -169,8 +169,37 @@ enum ClocktowerStage {
             glyph: "🕯",
             position: ScenePoint(0.38, 0.32),
             effects: [
-                .say(.creature(name: "시계 지기 그림자", text: "달을 맞추면 너희는 집으로 갈 수 있어. 종 위에, 종이 달을."))
+                .say(.creature(name: "시계 지기 그림자", text: "달을 맞추면 너희는 집으로 갈 수 있어. 종 위에, 종이 달을. 종 아래 홈은 먼저 닦아야 하지만."))
             ]
+        ),
+        Hotspot(
+            id: .dustyMirror,
+            room: .towerGears,
+            label: "먼지 쌓인 거울",
+            glyph: "🪞",
+            position: ScenePoint(0.90, 0.54),
+            requiredCharacter: .momo,
+            characterNote: "거울이 높이 걸려 있다. 발끝으로는 닿지 않으니 모모가 손으로 닦자.",
+            effects: [
+                .say(.narration("벽에 먼지가 두껍게 앉은 손거울이 걸려 있다. 손으로 문질러 닦으면 뒤에 새겨진 글씨가 보일 것 같다.")),
+                .openDust("tower.mirror")
+            ],
+            hiddenWhen: [.flag(Flags.mirrorWiped)],
+            repeatText: "거울은 이미 반짝이고 있다."
+        ),
+        Hotspot(
+            id: .gearLoft,
+            room: .towerGears,
+            label: "톱니 선반",
+            glyph: "🧱",
+            position: ScenePoint(0.12, 0.66),
+            requiredCharacter: .momo,
+            characterNote: "선반이 벽 높이 붙어 있다. 모모가 팔을 뻗어야 닿겠다.",
+            effects: [
+                .say(.narration("낮은 선반에 톱니가 가지런히 꽂혀 있다. 제일 큰 톱니 옆에 '종 아래 홈을 닦아라'라고 새겨져 있다.")),
+                .flag(Flags.sawGearLoft)
+            ],
+            repeatText: "선반의 글씨는 그대로다."
         ),
 
         // 종탑 꼭대기
@@ -181,13 +210,15 @@ enum ClocktowerStage {
             glyph: "🔔",
             position: ScenePoint(0.50, 0.42),
             effects: [
-                .say(.narration("종이가 접힌 종이 거꾸로 매달려 있다. 종 아래엔 달 모양 홈이 파여 있다."))
+                .say(.narration("종이가 접힌 종이 거꾸로 매달려 있다. 종 아래엔 달 모양 홈이 파여 있다. 홈이 먼지로 덮여 있다."))
             ],
             itemReactions: [
                 ItemReaction(
                     item: .paperMoonShard,
                     consume: true,
-                    text: "종이달 조각을 홈에 맞추자 종 전체가 달빛으로 빛나며 은은하게 울렸다.",
+                    requires: [.flag(Flags.mirrorWiped)],
+                    blocked: "달 모양 홈이 먼지로 덮여 조각이 들어가지 않는다. 무언가로 홈을 닦아야 한다.",
+                    text: "닦아 낸 홈에 종이달 조각을 맞추자 종 전체가 달빛으로 빛나며 은은하게 울렸다.",
                     effects: [
                         .flag(Flags.moonRestored),
                         .react(.momo, "🌙"),
@@ -245,6 +276,13 @@ enum ClocktowerStage {
         ),
         Hint(
             id: "tower.progress.4",
+            stage: .clocktower,
+            doneIf: .flag(Flags.mirrorWiped),
+            levelOne: "종 아래 홈이 먼지로 덮여 있다고 했다. 톱니바퀴 방 벽의 거울이 눈에 밟힌다.",
+            levelTwo: "모모로 바꿔 먼지 쌓인 거울을 누르고, 화면을 문질러 닦아 글씨를 읽자."
+        ),
+        Hint(
+            id: "tower.progress.5",
             stage: .clocktower,
             doneIf: .cleared(.clocktower),
             levelOne: "종탑 문이 열렸다. 종 아래에 달 모양 홈이 파여 있다.",

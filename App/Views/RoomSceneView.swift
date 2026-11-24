@@ -21,6 +21,9 @@ struct RoomSceneView: View {
             case .gearStairs: paintGearStairs(&context, size)
             case .gearRoom: paintGearRoom(&context, size)
             case .belfry: paintBelfry(&context, size)
+            case .cellarStairs: paintCellarStairs(&context, size)
+            case .cellarPantry: paintCellarPantry(&context, size)
+            case .cellarVault: paintCellarVault(&context, size)
             }
             paintPaperGrain(&context, size)
         }
@@ -551,4 +554,183 @@ struct RoomSceneView: View {
         stairs.addLine(to: CGPoint(x: w * 0.96, y: h * 0.32))
         context.stroke(stairs, with: .color(Palette.cream.opacity(0.7)), lineWidth: 1.3)
     }
+
+    // MARK: 보너스 장면 · 비밀 다락방 지하실
+
+    private func paintCellarStairs(_ context: inout GraphicsContext, _ size: CGSize) {
+        let w = size.width
+        let h = size.height
+
+        // 내려가는 돌계단
+        for index in 0..<6 {
+            let step = CGRect(
+                x: w * (0.16 + CGFloat(index) * 0.015),
+                y: h * (0.30 + CGFloat(index) * 0.085),
+                width: w * (0.66 - CGFloat(index) * 0.03),
+                height: h * 0.062
+            )
+            Brush.paint(Brush.rect(step, corner: 5), in: &context, fill: Color(red: 0.52, green: 0.47, blue: 0.42))
+            var edge = Path()
+            edge.move(to: CGPoint(x: step.minX, y: step.maxY))
+            edge.addLine(to: CGPoint(x: step.maxX, y: step.maxY))
+            context.stroke(edge, with: .color(Palette.lineSoft.opacity(0.35)), lineWidth: 1)
+        }
+
+        // 벽돌 아치
+        var arch = Path()
+        arch.move(to: CGPoint(x: w * 0.10, y: h * 0.30))
+        arch.addQuadCurve(to: CGPoint(x: w * 0.90, y: h * 0.30), control: CGPoint(x: w * 0.50, y: h * 0.02))
+        context.stroke(arch, with: .color(Palette.lineSoft.opacity(0.45)), lineWidth: 2)
+
+        var bricks = Path()
+        var y: CGFloat = h * 0.05
+        while y < h * 0.30 {
+            bricks.move(to: CGPoint(x: w * 0.08, y: y))
+            bricks.addLine(to: CGPoint(x: w * 0.92, y: y))
+            y += h * 0.05
+        }
+        context.stroke(bricks, with: .color(Palette.lineSoft.opacity(0.12)), lineWidth: 1)
+
+        // 벽 고리와 기름등잔 자리
+        let hook = CGPoint(x: w * 0.82, y: h * 0.26)
+        context.stroke(
+            Path { path in
+                path.move(to: hook)
+                path.addLine(to: CGPoint(x: hook.x, y: hook.y + 18))
+            },
+            with: .color(Palette.lineSoft.opacity(0.6)),
+            lineWidth: 1.6
+        )
+        Brush.glow(&context, center: CGPoint(x: w * 0.82, y: h * 0.36), radius: w * 0.20, strength: 0.34)
+
+        // 벽돌 틈
+        let nook = CGRect(x: w * 0.06, y: h * 0.74, width: w * 0.10, height: h * 0.07)
+        Brush.paint(Brush.rect(nook, corner: 3), in: &context, fill: Palette.duskDeep.opacity(0.85))
+
+        pole(&context, size)
+    }
+
+    private func paintCellarPantry(_ context: inout GraphicsContext, _ size: CGSize) {
+        let w = size.width
+        let h = size.height
+
+        // 포도주 선반 두 줄
+        for row in 0..<2 {
+            let shelfY = h * (0.24 + CGFloat(row) * 0.20)
+            Brush.paint(
+                Brush.rect(CGRect(x: w * 0.30, y: shelfY, width: w * 0.52, height: h * 0.030), corner: 3),
+                in: &context,
+                fill: Color(red: 0.55, green: 0.42, blue: 0.32)
+            )
+            for index in 0..<4 {
+                let bottle = CGRect(
+                    x: w * (0.33 + CGFloat(index) * 0.12),
+                    y: shelfY - h * 0.075,
+                    width: w * 0.045,
+                    height: h * 0.075
+                )
+                Brush.paint(Brush.rect(bottle, corner: 6), in: &context, fill: Palette.duskDeep.opacity(0.75))
+                var neck = Path()
+                neck.move(to: CGPoint(x: bottle.midX, y: bottle.minY))
+                neck.addLine(to: CGPoint(x: bottle.midX, y: bottle.minY - 10))
+                context.stroke(neck, with: .color(Palette.lineSoft.opacity(0.55)), lineWidth: 2)
+            }
+        }
+
+        // 찢어진 라벨
+        let label = CGRect(x: w * 0.14, y: h * 0.28, width: w * 0.13, height: h * 0.12)
+        context.fill(Brush.rect(label, corner: 3), with: .color(Palette.cream.opacity(0.9)))
+        var tear = Path()
+        tear.move(to: CGPoint(x: label.midX, y: label.minY))
+        tear.addLine(to: CGPoint(x: label.midX - 4, y: label.midY))
+        tear.addLine(to: CGPoint(x: label.midX + 3, y: label.maxY))
+        context.stroke(tear, with: .color(Palette.lineSoft.opacity(0.6)), lineWidth: 1.1)
+
+        // 물 고인 바닥
+        let puddle = CGRect(x: w * 0.58, y: h * 0.80, width: w * 0.38, height: h * 0.12)
+        context.fill(Path(ellipseIn: puddle), with: .color(Palette.dusk.opacity(0.42)))
+        context.stroke(Path(ellipseIn: puddle), with: .color(Palette.cream.opacity(0.4)), lineWidth: 1)
+
+        // 양피지 상자
+        Brush.paint(
+            Brush.rect(CGRect(x: w * 0.22, y: h * 0.64, width: w * 0.20, height: h * 0.12), corner: 6),
+            in: &context,
+            fill: Color(red: 0.66, green: 0.51, blue: 0.37)
+        )
+
+        Brush.glow(&context, center: CGPoint(x: w * 0.60, y: h * 0.40), radius: w * 0.34, strength: 0.22)
+        pole(&context, size)
+    }
+
+    private func paintCellarVault(_ context: inout GraphicsContext, _ size: CGSize) {
+        let w = size.width
+        let h = size.height
+
+        // 달 모양 금고 문
+        let door = CGRect(x: w * 0.32, y: h * 0.16, width: w * 0.36, height: w * 0.36)
+        context.fill(Path(ellipseIn: door), with: .color(Color(red: 0.72, green: 0.62, blue: 0.45)))
+        context.stroke(Path(ellipseIn: door), with: .color(Palette.lineSoft.opacity(0.6)), lineWidth: 2)
+
+        let bite = Brush.blob(
+            center: CGPoint(x: door.midX + door.width * 0.26, y: door.midY - door.height * 0.16),
+            radius: door.width * 0.24,
+            wobble: 0.05,
+            seed: 7
+        )
+        context.fill(bite, with: .color(Palette.wall(.cellarVault)))
+        context.stroke(bite, with: .color(Palette.lineSoft.opacity(0.45)), lineWidth: 1.1)
+
+        // 열쇠 구멍과 암호판
+        let keyhole = Path(ellipseIn: CGRect(
+            x: door.midX - 7,
+            y: door.midY - 6,
+            width: 14,
+            height: 14
+        ))
+        context.fill(keyhole, with: .color(Palette.duskDeep))
+        Brush.paint(
+            Brush.rect(CGRect(x: door.maxX + w * 0.03, y: door.midY - h * 0.05,
+                              width: w * 0.09, height: h * 0.10), corner: 4),
+            in: &context,
+            fill: Palette.butter.opacity(0.75)
+        )
+
+        // 장부 책상
+        Brush.paint(
+            Brush.rect(CGRect(x: w * 0.66, y: h * 0.62, width: w * 0.26, height: h * 0.05), corner: 4),
+            in: &context,
+            fill: Color(red: 0.52, green: 0.40, blue: 0.31)
+        )
+        let book = CGRect(x: w * 0.70, y: h * 0.55, width: w * 0.14, height: h * 0.07)
+        Brush.paint(Brush.rect(book, corner: 3), in: &context, fill: Palette.roseDeep.opacity(0.8))
+        var pages = Path()
+        pages.move(to: CGPoint(x: book.midX, y: book.minY + 2))
+        pages.addLine(to: CGPoint(x: book.midX, y: book.maxY - 2))
+        context.stroke(pages, with: .color(Palette.cream.opacity(0.7)), lineWidth: 1)
+
+        // 낮은 앨범 선반
+        Brush.paint(
+            Brush.rect(CGRect(x: w * 0.10, y: h * 0.66, width: w * 0.22, height: h * 0.035), corner: 3),
+            in: &context,
+            fill: Color(red: 0.46, green: 0.36, blue: 0.29)
+        )
+
+        // 촛불 두 자루
+        for index in 0..<2 {
+            let x = w * (0.24 + CGFloat(index) * 0.52)
+            Brush.glow(&context, center: CGPoint(x: x, y: h * 0.44), radius: w * 0.20, strength: 0.3)
+            Brush.paint(
+                Brush.rect(CGRect(x: x - w * 0.012, y: h * 0.50, width: w * 0.024, height: h * 0.08), corner: 2),
+                in: &context,
+                fill: Palette.cream
+            )
+            context.fill(
+                Path(ellipseIn: CGRect(x: x - w * 0.007, y: h * 0.455, width: w * 0.014, height: h * 0.045)),
+                with: .color(Palette.candle)
+            )
+        }
+
+        pole(&context, size)
+    }
+
 }

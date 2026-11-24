@@ -47,6 +47,9 @@ enum TestHelp {
         flags: Set<String> = [],
         solved: Set<PuzzleID> = [],
         cleared: Set<StageID> = [],
+        character: PlayableCharacter = .momo,
+        collected: Set<CollectibleID> = [],
+        entitlements: Entitlements = .full,
         store: SaveStore? = nil,
         now: @escaping () -> Date = { Date(timeIntervalSince1970: 1_700_000_000) }
     ) -> GameEngine {
@@ -57,8 +60,16 @@ enum TestHelp {
             flags: flags,
             solvedPuzzles: solved,
             startedAt: now(),
-            clearedStages: cleared
+            clearedStages: cleared,
+            activeCharacter: character,
+            collected: collected
         )
-        return GameEngine(world: .paperMoon, state: state, store: store, clock: now)
+        return GameEngine(
+            world: .paperMoon,
+            state: state,
+            store: store,
+            entitlements: entitlements,
+            clock: now
+        )
     }
 }

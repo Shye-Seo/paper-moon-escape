@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from dataclasses import dataclass, field
@@ -243,7 +244,7 @@ def check_property_access(
             symbols[match.group(1)] = match.group(2)
         for match in re.finditer(r"(?:func\s+\w+|init)\s*\(([^)]*)\)", file.code):
             for param in re.finditer(
-                r"([A-Za-z_]\w*)\s*:\s*([A-Z][A-Za-z0-9_]*)\??", match.group(1)
+                r"([A-Za-z_]\w*)\s*:\s*([A-Z][A-Za-z0-9_.]*)\??", match.group(1)
             ):
                 symbols[param.group(1)] = param.group(2)
 
@@ -277,7 +278,12 @@ SWIFTUI_TYPES = {
     "DispatchQueue", "DispatchWorkItem", "Timer", "Error", "Never",
     "XCTestCase", "XCTAssert", "XCTAssertEqual", "XCTAssertTrue", "XCTAssertFalse",
     "XCTAssertNil", "XCTAssertNotNil", "XCTFail", "XCTAssertGreaterThan",
-    "XCTAssertNotEqual", "XCTAssertGreaterThanOrEqual",
+    "XCTAssertNotEqual", "XCTAssertGreaterThanOrEqual", "XCTAssertLessThan",
+    "XCTAssertLessThanOrEqual", "XCTUnwrap",
+    "GridItem", "LazyVGrid", "LazyHGrid", "Grid", "Label", "Toggle", "ProgressView",
+    "Binding", "NumberFormatter", "NSNumber", "CMMotionManager", "CMAltimeter",
+    "GroupBox", "Divider", "Sheet", "Section", "DragGesture", "TapGesture",
+    "LongPressGesture", "MagnificationGesture", "GestureMask", "AnimationCurve",
     "JSONEncoder", "JSONDecoder", "UserDefaults", "DateFormatter",
     "App", "Scene", "WindowGroup", "View", "ViewModifier", "ButtonStyle",
     "Configuration", "Content", "Body", "AnyView", "EmptyView", "MainActor",
@@ -349,6 +355,107 @@ def count_tests(files: list[SwiftFile]) -> tuple[int, int]:
     return classes, methods
 
 
+
+
+# ---------------------------------------------------------------------------
+# 기능 배선 검사 (4가지 오리지널 기능 + IAP)
+# ---------------------------------------------------------------------------
+
+REQUIRED_FILES = [
+    "App/StoreKit/StoreManager.swift",
+    "App/MotionManager.swift",
+    "App/Views/ShopView.swift",
+    "App/Views/ScrapbookView.swift",
+    "App/Views/DustWipeOverlay.swift",
+    "Products.storekit",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/PlayableCharacter.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/MotionInput.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/StoreProducts.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/DustPanel.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/Collectibles.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/World/CellarStage.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/World/ScrapbookCatalog.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/World/DustCatalog.swift",
+]
+
+
+def read_text(rel: str) -> str:
+    path = ROOT / rel
+    return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def check_feature_wiring() -> list[str]:
+    problems: list[str] = []
+
+    for rel in REQUIRED_FILES:
+        if not (ROOT / rel).exists():
+            problems.append(f"{rel} 가 없다")
+
+    # 상품 식별자: Products.storekit ↔ Core StoreProduct
+    storekit_path = ROOT / "Products.storekit"
+    storekit_ids: set[str] = set()
+    if storekit_path.exists():
+        try:
+            config = json.loads(storekit_path.read_text(encoding="utf-8"))
+            storekit_ids = {product.get("productID", "") for product in config.get("products", [])}
+        except json.JSONDecodeError as error:
+            problems.append(f"Products.storekit 를 읽지 못했다: {error}")
+    core_ids = set(re.findall(r'case \w+ = "(com\.quoguri\.[^"]+)"', read_text(
+        "Packages/PaperMoonCore/Sources/PaperMoonCore/StoreProducts.swift"
+    )))
+    if storekit_ids != core_ids:
+        problems.append(
+            "상품 식별자가 어긋난다: storekit=%s core=%s"
+            % (sorted(storekit_ids), sorted(core_ids))
+        )
+    if len(core_ids) != 3:
+        problems.append(f"유료 상품이 {len(core_ids)}개다(3개여야 한다)")
+
+    store_manager = read_text("App/StoreKit/StoreManager.swift")
+    for needle in ["import StoreKit", "Product.products(for:", "Transaction.currentEntitlements",
+                   "AppStore.sync", "devUnlockKey"]:
+        if needle not in store_manager:
+            problems.append(f"StoreManager에 '{needle}'가 없다")
+
+    motion = read_text("App/MotionManager.swift")
+    for needle in ["canImport(CoreMotion)", "startDeviceMotionUpdates", "MotionInput"]:
+        if needle not in motion:
+            problems.append(f"MotionManager에 '{needle}'가 없다")
+
+    dust_overlay = read_text("App/Views/DustWipeOverlay.swift")
+    for needle in ["DragGesture", "onSweep", "onShake", "대신 닦아 주기"]:
+        if needle not in dust_overlay:
+            problems.append(f"먼지 닦기 화면에 '{needle}' 대안이 없다")
+    if "wipeAll" not in read_text("App/GameStore.swift"):
+        problems.append("GameStore에 먼지 전체 닦기(wipeAll) 대안이 없다")
+
+    overlay = read_text("App/Views/PuzzleOverlay.swift")
+    for needle in ["struct OrigamiBoard", "struct LightRevealBoard", "case .origami", "case .lightReveal"]:
+        if needle not in overlay:
+            problems.append(f"PuzzleOverlay에 '{needle}'가 없다")
+
+    game_view = read_text("App/Views/GameView.swift")
+    for needle in ["toggleCharacter", "DustWipeOverlay(", "collectibleButton", "characterSwitch"]:
+        if needle not in game_view:
+            problems.append(f"GameView에 '{needle}' 배선이 없다")
+
+    game_store = read_text("App/GameStore.swift")
+    for needle in ["PlayableCharacter", "DustSession", "ScrapbookEntry", "applyEntitlements", "purchaseRequired"]:
+        if needle not in game_store:
+            problems.append(f"GameStore에 '{needle}' 처리가 없다")
+
+    return problems
+
+
+def check_readme_features() -> list[str]:
+    problems: list[str] = []
+    text = read_text("README.md")
+    for needle in ["종이접기", "빛 투과", "피코", "스크랩북", "먼지", "지하실", "4,900", "StoreKit"]:
+        if needle not in text:
+            problems.append(f"README에 '{needle}' 설명이 없다")
+    return problems
+
+
 # ---------------------------------------------------------------------------
 # 메인
 # ---------------------------------------------------------------------------
@@ -379,11 +486,13 @@ def main() -> int:
     problems += check_type_usage(app_files + core_files + core_test_files + app_test_files,
                                 set(core_types) | set(app_types))
     problems += check_project_structure()
+    problems += check_feature_wiring()
+    problems += check_readme_features()
 
     core_classes, core_methods = count_tests(core_test_files)
     app_classes, app_methods = count_tests(app_test_files)
-    if core_methods + app_methods < 15:
-        problems.append(f"테스트 메서드가 {core_methods + app_methods}개뿐이다(최소 15개)")
+    if core_methods + app_methods < 100:
+        problems.append(f"테스트 메서드가 {core_methods + app_methods}개뿐이다(최소 100개)")
 
     app_lines = sum(len(f.raw.splitlines()) for f in app_files)
     core_lines = sum(len(f.raw.splitlines()) for f in core_files)
@@ -408,7 +517,8 @@ def main() -> int:
             print("  -", problem)
         return 1
 
-    print("문제 없음: 괄호 균형, 선언/참조 일치, Core 공개 API, 프로젝트 구조 모두 통과")
+    print("문제 없음: 괄호 균형, 선언/참조 일치, Core 공개 API, 프로젝트 구조,")
+    print("          4가지 오리지널 기능·IAP 배선, README 설명 모두 통과")
     return 0
 
 

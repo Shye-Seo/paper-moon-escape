@@ -2,11 +2,19 @@ import Foundation
 
 // MARK: - 식별자
 
-/// 세 개의 스테이지. 저장 데이터에는 원시값(String)으로 기록된다.
+/// 본편 세 장면과, 본편을 깬 뒤에 열리는 보너스 장면 하나.
+/// 저장 데이터에는 원시값(String)으로 기록된다.
 public enum StageID: String, Codable, CaseIterable, Hashable, Sendable {
     case attic
     case greenhouse
     case clocktower
+    /// 「비밀 다락방 지하실」 보너스 4장면.
+    case cellar
+
+    /// 본편을 처음부터 끝까지 잇는 순서. 보너스 장면은 여기 들어가지 않는다.
+    public static let mainline: [StageID] = [.attic, .greenhouse, .clocktower]
+
+    public var isBonus: Bool { self == .cellar }
 }
 
 /// 스테이지마다 세 개의 방. 좌우 화살표로 오간다.
@@ -22,6 +30,10 @@ public enum RoomID: String, Codable, CaseIterable, Hashable, Sendable {
     case towerStairs
     case towerGears
     case towerBelfry
+
+    case cellarSteps
+    case cellarPantry
+    case cellarVault
 }
 
 /// 인벤토리에 담기는 모든 물건.
@@ -42,6 +54,19 @@ public enum ItemID: String, Codable, CaseIterable, Hashable, Sendable {
     case windKey
     case gear
     case clockPart
+
+    // 1장면 · 종이접기와 등불
+    case paperSheet
+    case paperMoonLamp
+    case candleStub
+    case moonLamp
+
+    // 보너스 장면 · 지하실
+    case vellumPage
+    case oilLamp
+    case rustyHandle
+    case paperBoat
+    case vaultKey
 }
 
 /// 화면에서 만질 수 있는 모든 지점.
@@ -92,13 +117,53 @@ public enum HotspotID: String, Codable, CaseIterable, Hashable, Sendable {
     case paperBell
     case starPaper
     case belfryView
+
+    // 1장면 · 캐릭터 협동
+    case highShelf
+    case foldingDesk
+    case mouseHole
+
+    // 2장면 · 캐릭터 협동과 빛 투과
+    case hangingPot
+    case tornPaperWindow
+
+    // 3장면 · 먼지 닦기
+    case dustyMirror
+    case gearLoft
+
+    // 보너스 장면 · 지하실
+    case ironGateLatch
+    case brickNook
+    case oilLampHook
+    case paperCrate
+    case foldingStool
+    case tornLabel
+    case floodedDrain
+    case moonVault
+    case oldAlbum
+    case vaultLedger
+    case cellarSign
+    case wineRack
 }
 
-/// 미니게임 퍼즐 세 가지.
+/// 미니게임 퍼즐. 본편 세 가지에 종이접기·빛 투과 퍼즐과 보너스 장면 퍼즐이 더해진다.
 public enum PuzzleID: String, Codable, CaseIterable, Hashable, Sendable {
     case toyBlocks
     case frogSong
     case gearDials
+
+    /// 1장면 · 종이 도면을 접어 종이달 등불을 만든다.
+    case paperMoonOrigami
+    /// 2장면 · 찢어진 종이를 맞추고 랜턴 빛으로 숨은 글자를 읽는다.
+    case tornPaperCode
+    /// 보너스 장면 · 양피지를 접어 종이배를 만든다.
+    case cellarBoat
+    /// 보너스 장면 · 포도주 라벨의 찢긴 종이를 맞추고 기름등잔 빛으로 암호를 읽는다.
+    case cellarVaultCode
+
+    public var isOrigami: Bool {
+        self == .paperMoonOrigami || self == .cellarBoat
+    }
 }
 
 /// 말풍선 리액션을 하는 캐릭터.
@@ -121,6 +186,9 @@ public enum RoomArt: String, Codable, Hashable, Sendable {
     case gearStairs
     case gearRoom
     case belfry
+    case cellarStairs
+    case cellarPantry
+    case cellarVault
 }
 
 // MARK: - 대사
@@ -163,6 +231,8 @@ public enum Effect: Equatable, Sendable {
     case flag(String)
     case unflag(String)
     case openPuzzle(PuzzleID)
+    /// 먼지를 닦는 판을 연다. 판 id는 `DustPanel.id`와 같다.
+    case openDust(String)
     case clearStage
 }
 
@@ -172,7 +242,7 @@ extension Effect {
         switch self {
         case .give, .openPuzzle, .clearStage:
             return true
-        case .say, .react, .take, .flag, .unflag:
+        case .say, .react, .take, .flag, .unflag, .openDust:
             return false
         }
     }
@@ -267,6 +337,10 @@ public struct Hotspot: Identifiable, Equatable, Sendable {
     public let mismatchText: String?
     public let repeatText: String?
     public let hiddenWhen: [Requirement]
+    /// 이 지점에 손이 닿는 캐릭터. nil이면 둘 다 된다.
+    public let requiredCharacter: PlayableCharacter?
+    /// 다른 캐릭터로 눌렀을 때의 코지한 안내. 없으면 기본 안내를 쓴다.
+    public let characterNote: String?
 
     public init(
         id: HotspotID,
@@ -276,11 +350,13 @@ public struct Hotspot: Identifiable, Equatable, Sendable {
         position: ScenePoint,
         requires: [Requirement] = [],
         blocked: String? = nil,
+        requiredCharacter: PlayableCharacter? = nil,
+        characterNote: String? = nil,
         effects: [Effect] = [],
         itemReactions: [ItemReaction] = [],
         mismatchText: String? = nil,
-        repeatText: String? = nil,
-        hiddenWhen: [Requirement] = []
+        hiddenWhen: [Requirement] = [],
+        repeatText: String? = nil
     ) {
         self.id = id
         self.room = room
@@ -289,11 +365,13 @@ public struct Hotspot: Identifiable, Equatable, Sendable {
         self.position = position
         self.requires = requires
         self.blocked = blocked
+        self.requiredCharacter = requiredCharacter
+        self.characterNote = characterNote
         self.effects = effects
         self.itemReactions = itemReactions
         self.mismatchText = mismatchText
-        self.repeatText = repeatText
         self.hiddenWhen = hiddenWhen
+        self.repeatText = repeatText
     }
 }
 
@@ -343,6 +421,14 @@ public enum PuzzleKind: String, Codable, Hashable, Sendable {
     case song
     /// 다이얼 세 개의 방향을 맞추는 퍼즐.
     case dials
+    /// 화면의 종이를 순서대로 접어 모양을 만드는 퍼즐. 스와이프·탭 둘 다 된다.
+    case origami
+    /// 찢어진 종잇조각을 제자리에 맞춘 뒤 빛을 비춰 숨은 글자를 읽는 퍼즐.
+    case lightReveal
+
+    public var isTouchGesture: Bool {
+        self == .origami || self == .lightReveal
+    }
 }
 
 public struct PuzzleToken: Equatable, Sendable {
@@ -369,6 +455,12 @@ public struct Puzzle: Identifiable, Equatable, Sendable {
     public let successText: String
     public let retryText: String
     public let rewards: [Effect]
+    /// 완성하면 만들어지는 것의 이름. 종이접기·빛 투과 퍼즐의 목표 표시에 쓴다.
+    public let goal: String?
+    /// 빛 투과 퍼즐에서 빛을 비추면 드러나는 문장(숨은 암호).
+    public let revealedCode: String?
+    /// 빛 투과 퍼즐에 필요한 빛 도구.
+    public let lightSource: ItemID?
 
     public init(
         id: PuzzleID,
@@ -381,7 +473,10 @@ public struct Puzzle: Identifiable, Equatable, Sendable {
         slotLabels: [String],
         successText: String,
         retryText: String,
-        rewards: [Effect]
+        rewards: [Effect],
+        goal: String? = nil,
+        revealedCode: String? = nil,
+        lightSource: ItemID? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -394,7 +489,13 @@ public struct Puzzle: Identifiable, Equatable, Sendable {
         self.successText = successText
         self.retryText = retryText
         self.rewards = rewards
+        self.goal = goal
+        self.revealedCode = revealedCode
+        self.lightSource = lightSource
     }
+
+    /// 종잇조각이 몇 개인지. 빛 투과 퍼즐 화면이 조각 배치를 그릴 때 쓴다.
+    public var pieceCount: Int { tokens.count }
 }
 
 // MARK: - 힌트
@@ -433,6 +534,8 @@ public struct Stage: Identifiable, Equatable, Sendable {
     public let opening: String
     public let closing: String
     public let next: StageID?
+    /// 본편이 아니라 유료로 여는 보너스 장면인지. 보너스는 엔딩 요약 대신 자기 엔딩을 연다.
+    public let isBonus: Bool
 
     public init(
         id: StageID,
@@ -442,7 +545,8 @@ public struct Stage: Identifiable, Equatable, Sendable {
         rooms: [RoomID],
         opening: String,
         closing: String,
-        next: StageID?
+        next: StageID?,
+        isBonus: Bool = false
     ) {
         self.id = id
         self.number = number
@@ -452,5 +556,6 @@ public struct Stage: Identifiable, Equatable, Sendable {
         self.opening = opening
         self.closing = closing
         self.next = next
+        self.isBonus = isBonus
     }
 }

@@ -9,6 +9,12 @@ public struct World: Sendable {
     public let puzzles: [Puzzle]
     public let combos: [Combo]
     public let hints: [Hint]
+    /// 방 곳곳에 숨겨 둔 종이학·우표.
+    public let collectibles: [Collectible]
+    /// 문질러 닦으면 단서가 드러나는 거울·유리·명판.
+    public let dustPanels: [DustPanel]
+    /// 종이학을 다 모았을 때 열리는 서랍의 내용물.
+    public let secretGift: SecretGift
 
     public init(
         stages: [Stage],
@@ -17,7 +23,10 @@ public struct World: Sendable {
         hotspots: [Hotspot],
         puzzles: [Puzzle],
         combos: [Combo],
-        hints: [Hint]
+        hints: [Hint],
+        collectibles: [Collectible] = [],
+        dustPanels: [DustPanel] = [],
+        secretGift: SecretGift = .paperMoon
     ) {
         self.stages = stages
         self.rooms = rooms
@@ -26,6 +35,9 @@ public struct World: Sendable {
         self.puzzles = puzzles
         self.combos = combos
         self.hints = hints
+        self.collectibles = collectibles
+        self.dustPanels = dustPanels
+        self.secretGift = secretGift
     }
 
     // MARK: 조회
@@ -64,6 +76,28 @@ public struct World: Sendable {
         puzzles.first { $0.id == id }
     }
 
+    public func collectible(_ id: CollectibleID) -> Collectible? {
+        collectibles.first { $0.id == id }
+    }
+
+    public func collectibles(in room: RoomID) -> [Collectible] {
+        collectibles.filter { $0.room == room }.sorted { $0.id.sortKey < $1.id.sortKey }
+    }
+
+    /// 스크랩북에 채워지는 순서 그대로.
+    public var collectiblesInOrder: [Collectible] {
+        collectibles.sorted { $0.id.sortKey < $1.id.sortKey }
+    }
+
+    public func dustPanel(_ id: String) -> DustPanel? {
+        dustPanels.first { $0.id == id }
+    }
+
+    /// 이 방에서 문질러 볼 수 있는 먼지 판.
+    public func dustPanels(in room: RoomID) -> [DustPanel] {
+        dustPanels.filter { $0.room == room }
+    }
+
     public func combo(_ first: ItemID, _ second: ItemID) -> Combo? {
         combos.first { $0.matches(first, second) }
     }
@@ -74,6 +108,16 @@ public struct World: Sendable {
 
     public var startRoom: RoomID {
         stages.first?.rooms.first ?? .atticLanding
+    }
+
+    /// 본편 세 장면만. 스테이지 선택 화면의 기본 목록.
+    public var mainStages: [Stage] {
+        stages.filter { !$0.isBonus }
+    }
+
+    /// 유료로 여는 보너스 장면들.
+    public var bonusStages: [Stage] {
+        stages.filter { $0.isBonus }
     }
 
     /// 지금 시점에서 가장 먼저 달성해야 할 목표 하나. 목록 순서가 곧 우선순위다.
@@ -237,6 +281,62 @@ public struct World: Sendable {
             if let next = stage.next, stages.first(where: { $0.id == next }) == nil {
                 problems.append("스테이지 \(stage.id.rawValue)의 다음 스테이지가 없다")
             }
+            if stage.isBonus != stage.id.isBonus {
+                problems.append("스테이지 \(stage.id.rawValue)의 보너스 표시가 id와 맞지 않는다")
+            }
+            if stage.isBonus && stage.next != nil {
+                problems.append("보너스 스테이지 \(stage.id.rawValue)에 다음 장면을 달면 안 된다")
+            }
+            if rooms.contains(where: { $0.stage == stage.id }) == false {
+                problems.append("스테이지 \(stage.id.rawValue)에 방이 하나도 없다")
+            }
+        }
+
+        for stageID in StageID.mainline where stage(stageID) == nil {
+            problems.append("본편 스테이지 \(stageID.rawValue)가 세계에 없다")
+        }
+
+        var seenCollectibles = Set<CollectibleID>()
+        for collectible in collectibles {
+            if !seenCollectibles.insert(collectible.id).inserted {
+                problems.append("수집품 id 중복: \(collectible.id.rawValue)")
+            }
+            if room(collectible.room) == nil {
+                problems.append("수집품 \(collectible.id.rawValue)의 방이 없다")
+            }
+            if collectible.position.x < 0 || collectible.position.x > 1
+                || collectible.position.y < 0 || collectible.position.y > 1 {
+                problems.append("수집품 \(collectible.id.rawValue) 좌표가 화면 밖이다")
+            }
+            if collectible.memory.isEmpty {
+                problems.append("수집품 \(collectible.id.rawValue)에 기억 한 줄이 없다")
+            }
+        }
+        let cranes = collectibles.filter { $0.kind == .crane }
+        if cranes.count != GameState.craneGoal {
+            problems.append("종이학이 \(cranes.count)마리다(12마리여야 한다)")
+        }
+        for room in rooms where collectibles(in: room.id).isEmpty && room.stage != .cellar {
+            problems.append("본편 방 \(room.id.rawValue)에 숨은 수집품이 없다")
+        }
+
+        var seenDust = Set<String>()
+        for panel in dustPanels {
+            if !seenDust.insert(panel.id).inserted {
+                problems.append("먼지 판 id 중복: \(panel.id)")
+            }
+            if room(panel.room) == nil {
+                problems.append("먼지 판 \(panel.id)의 방이 없다")
+            }
+            if !(0.1...0.95).contains(panel.threshold) {
+                problems.append("먼지 판 \(panel.id)의 완료 기준이 이상하다")
+            }
+            if panel.columns < 2 || panel.rows < 2 {
+                problems.append("먼지 판 \(panel.id)의 칸 수가 너무 적다")
+            }
+            for effect in panel.effects {
+                check(effect: effect, owner: panel.id, problems: &problems)
+            }
         }
 
         var seenHints = Set<String>()
@@ -263,6 +363,8 @@ public struct World: Sendable {
             if self.item(item) == nil { problems.append("\(owner): 없는 아이템을 가져간다") }
         case .openPuzzle(let puzzle):
             if self.puzzle(puzzle) == nil { problems.append("\(owner): 없는 퍼즐을 연다") }
+        case .openDust(let panel):
+            if dustPanel(panel) == nil { problems.append("\(owner): 없는 먼지 판을 연다") }
         case .say, .react, .flag, .unflag, .clearStage:
             break
         }

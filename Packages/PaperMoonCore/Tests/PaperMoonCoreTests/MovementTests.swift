@@ -124,7 +124,8 @@ final class HotspotTests: XCTestCase {
         let engine = TestHelp.engine(
             at: .atticMoonWindow,
             stage: .attic,
-            inventory: [.mendedKey]
+            inventory: [.mendedKey],
+            flags: [Flags.lampLit]
         )
         _ = engine.tapInventoryItem(.mendedKey)
         let events = engine.tap(.moonLatch)

@@ -61,9 +61,10 @@ final class HintTests: XCTestCase {
         for hint in world.hints {
             XCTAssertNotEqual(hint.levelOne, hint.levelTwo, "힌트 \(hint.id)의 두 단계가 같다")
         }
-        XCTAssertEqual(world.hints(in: .attic).count, 5)
-        XCTAssertEqual(world.hints(in: .greenhouse).count, 5)
-        XCTAssertEqual(world.hints(in: .clocktower).count, 4)
+        XCTAssertEqual(world.hints(in: .attic).count, 9)
+        XCTAssertEqual(world.hints(in: .greenhouse).count, 6)
+        XCTAssertEqual(world.hints(in: .clocktower).count, 5)
+        XCTAssertEqual(world.hints(in: .cellar).count, 6)
     }
 
     func testHintAtStageEndIsFriendly() {
@@ -72,7 +73,8 @@ final class HintTests: XCTestCase {
             stage: .attic,
             flags: [
                 Flags.horseRocked, Flags.owlAwake, Flags.toyBoxOpen,
-                Flags.keyMended, Flags.moonOpened
+                Flags.keyMended, Flags.moonOpened,
+                Flags.paperSheetTaken, Flags.origamiMoon, Flags.candleStubTaken, Flags.lampLit
             ],
             cleared: [.attic]
         )
@@ -97,15 +99,16 @@ final class ProgressTests: XCTestCase {
         let summary = engine.summary()
         XCTAssertEqual(summary.clearedStages, 3)
         XCTAssertEqual(summary.hintsUsed, 0)
-        XCTAssertEqual(summary.craftedCount, 4)
-        XCTAssertEqual(summary.itemCount, 2, "엔딩 시점에는 랜턴과 물뿌리개가 남는다")
+        XCTAssertEqual(summary.craftedCount, 5, "부러진 열쇠 · 이어 붙인 열쇠 · 랜턴 · 시계 부품 · 켜진 종이달 등불")
+        XCTAssertEqual(summary.itemCount, 3, "엔딩 시점에는 랜턴 · 물뿌리개 · 켜진 종이달 등불이 남는다")
     }
 
     func testStageTransitionCarriesOpeningText() {
         let engine = TestHelp.engine(
             at: .atticMoonWindow,
             stage: .attic,
-            inventory: [.mendedKey]
+            inventory: [.mendedKey],
+            flags: [Flags.lampLit]
         )
         _ = engine.tapInventoryItem(.mendedKey)
         let events = engine.tap(.moonLatch)
@@ -118,7 +121,8 @@ final class ProgressTests: XCTestCase {
         let engine = TestHelp.engine(
             at: .atticMoonWindow,
             stage: .attic,
-            inventory: [.seed, .mendedKey]
+            inventory: [.seed, .mendedKey],
+            flags: [Flags.lampLit]
         )
         _ = engine.tapInventoryItem(.mendedKey)
         _ = engine.tap(.moonLatch)

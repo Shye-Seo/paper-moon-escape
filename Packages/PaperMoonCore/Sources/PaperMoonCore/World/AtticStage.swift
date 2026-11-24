@@ -52,6 +52,34 @@ enum AtticStage {
         ]
     )
 
+    /// 종이 도면을 순서대로 접어 종이달 등불을 만든다.
+    /// 화면에서는 도면을 직접 스와이프하거나, 접기 단추를 순서대로 눌러도 된다.
+    static let origamiPuzzle = Puzzle(
+        id: .paperMoonOrigami,
+        kind: .origami,
+        title: "종이달 접기",
+        prompt: "도면의 순서대로 종이를 접어 달 모양 등불을 만들어라",
+        clue: "도면 가장자리: 네 귀를 모으고 → 아래로 접고 → 가운데를 눌러 → 달 모양으로 펴기",
+        tokens: [
+            PuzzleToken(value: 0, label: "네 귀 모으기", symbol: "🔻"),
+            PuzzleToken(value: 1, label: "가운데 누르기", symbol: "🔶"),
+            PuzzleToken(value: 2, label: "아래로 접기", symbol: "🔹"),
+            PuzzleToken(value: 3, label: "달 모양 펴기", symbol: "🌙")
+        ],
+        solution: [0, 2, 1, 3],
+        slotLabels: ["첫 접기", "둘째 접기", "셋째 접기", "마지막 접기"],
+        successText: "마지막 접기에서 종이가 살짝 부풀며 작은 달 모양 등불이 되었다. 심지는 아직 비어 있다.",
+        retryText: "접힌 자리가 삐뚤게 어긋났다. 도면의 순서를 다시 보자.",
+        rewards: [
+            .take(.paperSheet),
+            .flag(Flags.origamiMoon),
+            .give(.paperMoonLamp),
+            .react(.momo, "✨"),
+            .say(.narration("도면 한 장이 달 모양 등불이 되었다. 안을 들여다보니 심지를 꽂을 자리가 비어 있다."))
+        ],
+        goal: "종이달 등불"
+    )
+
     static let hotspots: [Hotspot] = [
         // 다락방 계단참
         Hotspot(
@@ -102,8 +130,24 @@ enum AtticStage {
             position: ScenePoint(0.84, 0.26),
             effects: [
                 .react(.pico, "🤩"),
-                .say(.pico("종이학이 날개를 파닥이며 인사하고 창밖으로 사라졌어."))
+                .say(.pico("종이학이 날개를 파닥이며 인사하고 창밖으로 사라졌어. 방마다 한 마리씩 숨어 있는 것 같아."))
             ]
+        ),
+        Hotspot(
+            id: .highShelf,
+            room: .atticLanding,
+            label: "높은 선반",
+            glyph: "🗄",
+            position: ScenePoint(0.90, 0.60),
+            requiredCharacter: .momo,
+            characterNote: "선반이 높다. 피코가 아무리 발끝을 세워도 닿지 않는다. 모모라면 손이 닿을 것 같다.",
+            effects: [
+                .react(.momo, "📜"),
+                .say(.narration("높은 선반 위에 먼지를 뒤집어쓴 종이 도면이 놓여 있었다. 모모가 팔을 뻗어 조심히 내려왔다.")),
+                .give(.paperSheet),
+                .flag(Flags.paperSheetTaken)
+            ],
+            repeatText: "선반 위에는 도면이 놓여 있던 먼지 자국만 남아 있다."
         ),
 
         // 장난감 창고
@@ -151,6 +195,47 @@ enum AtticStage {
                 .say(.narration("고장 난 태엽 인형들이 나란히 앉아 있다. 하나같이 같은 방향, 시계탑 쪽을 가리키고 있다."))
             ]
         ),
+        Hotspot(
+            id: .foldingDesk,
+            room: .atticToyCloset,
+            label: "종이접기 책상",
+            glyph: "🪑",
+            position: ScenePoint(0.50, 0.22),
+            requires: [.item(.paperSheet)],
+            blocked: "책상 위에 도면을 펼 자리가 비어 있다. 접을 종이부터 찾아야 한다.",
+            requiredCharacter: .momo,
+            characterNote: "접기는 모모의 손이 필요하다. 피코의 앞발로는 종이가 찢어질 것 같다.",
+            effects: [
+                .say(.narration("도면을 책상에 펼쳤다. 접힌 자리를 따라 순서대로 접어야 한다.")),
+                .openPuzzle(.paperMoonOrigami)
+            ],
+            itemReactions: [
+                ItemReaction(
+                    item: .paperSheet,
+                    consume: false,
+                    text: "도면을 책상 위에 펼쳤다. 접힌 자국이 순서를 알려 준다.",
+                    effects: [.openPuzzle(.paperMoonOrigami)]
+                )
+            ],
+            hiddenWhen: [.flag(Flags.origamiMoon)],
+            repeatText: "책상 위에는 이미 달 모양 등불이 놓여 있다."
+        ),
+        Hotspot(
+            id: .mouseHole,
+            room: .atticToyCloset,
+            label: "쥐구멍",
+            glyph: "🕳",
+            position: ScenePoint(0.06, 0.90),
+            requiredCharacter: .pico,
+            characterNote: "쥐구멍은 모모의 손이 들어가기엔 좁다. 피코라면 앞발을 넣어 볼 수 있겠다.",
+            effects: [
+                .react(.pico, "🕯"),
+                .say(.pico("쥐구멍 안에 뭔가 반짝여! 짧은 초가 굴러다녀. 이거면 등불에 불을 붙일 수 있겠어.")),
+                .give(.candleStub),
+                .flag(Flags.candleStubTaken)
+            ],
+            repeatText: "쥐구멍 안은 이제 깨끗하다."
+        ),
 
         // 종이달 창
         Hotspot(
@@ -166,7 +251,9 @@ enum AtticStage {
                 ItemReaction(
                     item: .mendedKey,
                     consume: true,
-                    text: "이어 붙인 열쇠가 걸쇠 틈에서 딸깍, 돌아갔다. 창이 스르르 열린다.",
+                    requires: [.flag(Flags.lampLit)],
+                    blocked: "열쇠는 들어갈 것 같은데 창틀이 너무 어둡다. 종이달 등불을 켜서 비춰 봐야겠다.",
+                    text: "이어 붙인 열쇠가 걸쇠 틈에서 딸깍, 돌아갔다. 등불을 든 채 창이 스르르 열린다.",
                     effects: [
                         .flag(Flags.moonOpened),
                         .react(.momo, "😲"),
@@ -229,23 +316,51 @@ enum AtticStage {
         Hint(
             id: "attic.progress.3",
             stage: .attic,
+            doneIf: .flag(Flags.paperSheetTaken),
+            levelOne: "종이를 접으려면 접을 종이가 먼저 필요하다. 높은 곳을 살펴보자.",
+            levelTwo: "모모로 바꾼 뒤 계단참 오른쪽의 높은 선반을 누르면 종이 도면이 내려온다."
+        ),
+        Hint(
+            id: "attic.progress.4",
+            stage: .attic,
+            doneIf: .flag(Flags.origamiMoon),
+            levelOne: "장난감 창고에 종이접기 책상이 있다. 모모의 손이라면 접을 수 있다.",
+            levelTwo: "주머니의 종이 도면을 든 채 책상을 누르고, 귀 모으기 → 아래로 접기 → 가운데 누르기 → 달 모양 펴기 순서로 접자."
+        ),
+        Hint(
+            id: "attic.progress.5",
+            stage: .attic,
+            doneIf: .flag(Flags.candleStubTaken),
+            levelOne: "등불에 불을 붙일 것이 필요하다. 작은 것은 좁은 곳에 숨어 있다.",
+            levelTwo: "피코로 바꾼 뒤 장난감 창고 구석의 쥐구멍을 눌러 짧은 초를 꺼내자."
+        ),
+        Hint(
+            id: "attic.progress.6",
+            stage: .attic,
+            doneIf: .flag(Flags.lampLit),
+            levelOne: "종이달 등불은 아직 비어 있다. 초와 합쳐 보자.",
+            levelTwo: "주머니에서 종이달 등불과 짧은 초를 차례로 눌러 합치면 켜진 등불이 된다."
+        ),
+        Hint(
+            id: "attic.progress.7",
+            stage: .attic,
             doneIf: .flag(Flags.toyBoxOpen),
             levelOne: "장난감 창고 벽의 그림을 자세히 보자. 색 순서가 적혀 있다.",
             levelTwo: "로즈, 세이지, 버터, 라벤더 순서대로 블록을 놓으면 상자가 열린다."
         ),
         Hint(
-            id: "attic.progress.4",
+            id: "attic.progress.8",
             stage: .attic,
             doneIf: .flag(Flags.keyMended),
             levelOne: "열쇠가 두 동강 났다. 붙일 것이 필요하다.",
             levelTwo: "인벤토리에서 두 조각을 합치고, 다시 접착제와 합쳐 보자."
         ),
         Hint(
-            id: "attic.progress.5",
+            id: "attic.progress.9",
             stage: .attic,
             doneIf: .cleared(.attic),
             levelOne: "이제 창가로 갈 차례. 눈에 밟히는 잠금 장치가 있다.",
-            levelTwo: "종이달 창의 녹슨 걸쇠에 이어 붙인 열쇠를 골라 써 보자."
+            levelTwo: "켜진 종이달 등불을 든 채, 종이달 창의 녹슨 걸쇠에 이어 붙인 열쇠를 골라 써 보자."
         )
     ]
 

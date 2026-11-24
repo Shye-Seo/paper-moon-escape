@@ -72,23 +72,33 @@ final class ContentTests: XCTestCase {
         XCTAssertTrue(problems.isEmpty, "콘텐츠 문제: \(problems.joined(separator: ", "))")
     }
 
-    func testThreeStagesWithThreeRoomsEach() {
+    func testThreeMainStagesPlusBonusCellar() {
         let world = World.paperMoon
-        XCTAssertEqual(world.stages.count, 3)
+        XCTAssertEqual(world.mainStages.count, 3, "본편은 세 장면")
+        XCTAssertEqual(world.bonusStages.count, 1, "보너스 장면은 지하실 하나")
+        XCTAssertEqual(world.stages.count, 4)
         for stage in world.stages {
             XCTAssertEqual(stage.rooms.count, 3, "\(stage.id) 방 개수")
+            XCTAssertEqual(stage.isBonus, stage.id.isBonus, "\(stage.id) 보너스 표시")
             for roomID in stage.rooms {
                 XCTAssertNotNil(world.room(roomID))
-                XCTAssertGreaterThanOrEqual(world.hotspots(in: roomID).count, 3)
+                XCTAssertGreaterThanOrEqual(world.hotspots(in: roomID).count, 3, "\(roomID) 지점 개수")
             }
         }
     }
 
-    func testEveryStageHasOnePuzzle() {
+    func testEveryStageHasItsPuzzles() {
         let world = World.paperMoon
         for stage in world.stages {
-            XCTAssertEqual(world.puzzles(in: stage.id).count, 1, "\(stage.id) 퍼즐 개수")
+            XCTAssertGreaterThanOrEqual(world.puzzles(in: stage.id).count, 1, "\(stage.id) 퍼즐이 없다")
         }
+        XCTAssertTrue(world.puzzles(in: .attic).contains { $0.id == .toyBlocks })
+        XCTAssertTrue(world.puzzles(in: .attic).contains { $0.id == .paperMoonOrigami })
+        XCTAssertTrue(world.puzzles(in: .greenhouse).contains { $0.id == .frogSong })
+        XCTAssertTrue(world.puzzles(in: .greenhouse).contains { $0.id == .tornPaperCode })
+        XCTAssertTrue(world.puzzles(in: .clocktower).contains { $0.id == .gearDials })
+        XCTAssertTrue(world.puzzles(in: .cellar).contains { $0.id == .cellarBoat })
+        XCTAssertTrue(world.puzzles(in: .cellar).contains { $0.id == .cellarVaultCode })
     }
 
     func testEveryItemIsObtainable() {
@@ -102,13 +112,49 @@ final class ContentTests: XCTestCase {
         }
     }
 
-    func testAllFourCombosExist() {
+    func testAllFiveCombosExist() {
         let world = World.paperMoon
-        XCTAssertEqual(world.combos.count, 4)
+        XCTAssertEqual(world.combos.count, 5)
         XCTAssertNotNil(world.combo(.keyShardOval, .keyShardTooth))
         XCTAssertNotNil(world.combo(.brokenKey, .glueBottle))
         XCTAssertNotNil(world.combo(.emptyJar, .firefly))
         XCTAssertNotNil(world.combo(.windKey, .gear))
+        XCTAssertNotNil(world.combo(.paperMoonLamp, .candleStub))
+    }
+
+    func testScrapbookHasTwelveCranesAcrossNineRooms() {
+        let world = World.paperMoon
+        let cranes = world.collectibles.filter { $0.kind == .crane }
+        XCTAssertEqual(cranes.count, 12)
+        XCTAssertEqual(Set(cranes.map { $0.room }).count, 9, "본편 9개 방 모두에 종이학이 있다")
+        XCTAssertEqual(world.collectibles.filter { $0.kind == .stamp }.count, 3)
+        for collectible in world.collectibles {
+            XCTAssertFalse(collectible.memory.isEmpty, "\(collectible.id) 기억이 비었다")
+            XCTAssertNotNil(world.room(collectible.room))
+        }
+    }
+
+    func testDustPanelsAreWiredToTheirRooms() {
+        let world = World.paperMoon
+        XCTAssertEqual(world.dustPanels.count, 2)
+        for panel in world.dustPanels {
+            XCTAssertNotNil(world.room(panel.room))
+            XCTAssertFalse(panel.effects.isEmpty)
+            XCTAssertFalse(panel.doneIf.isEmpty)
+        }
+        XCTAssertNotNil(world.dustPanel("tower.mirror"))
+        XCTAssertNotNil(world.dustPanel("cellar.ledger"))
+    }
+
+    func testEveryHotspotWithCharacterGateNamesItsCharacter() {
+        let world = World.paperMoon
+        let gated = world.hotspots.filter { $0.requiredCharacter != nil }
+        XCTAssertGreaterThanOrEqual(gated.count, 8, "캐릭터 협동 지점이 너무 적다")
+        for hotspot in gated {
+            XCTAssertNotNil(hotspot.characterNote, "\(hotspot.id)에 안내 대사가 없다")
+        }
+        XCTAssertTrue(gated.contains { $0.requiredCharacter == .momo })
+        XCTAssertTrue(gated.contains { $0.requiredCharacter == .pico })
     }
 
     func testPuzzleSolutionsDifferFromTokenOrder() {

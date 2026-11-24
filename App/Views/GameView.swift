@@ -5,12 +5,13 @@ import PaperMoonCore
 /// 세로가 길면 여유 있게, 가로처럼 높이가 낮으면 compact 모드로 씬을 줄인다.
 struct GameView: View {
     @ObservedObject var store: GameStore
+    @StateObject private var motion = MotionManager()
     @State private var bounce = false
     @State private var pulse = false
 
     var body: some View {
         GeometryReader { proxy in
-            let compact = proxy.size.height < 540
+            let compact = proxy.size.height < 560
 
             ZStack {
                 PaperBackground()
@@ -31,8 +32,21 @@ struct GameView: View {
                     PuzzleOverlay(
                         puzzle: puzzle,
                         misses: store.puzzleMisses,
+                        motion: motion,
                         onSubmit: store.submitPuzzle,
                         onClose: store.closePuzzle
+                    )
+                    .transition(.opacity)
+                }
+
+                if let dust = store.dust {
+                    DustWipeOverlay(
+                        session: dust,
+                        motion: motion,
+                        onWipe: store.wipeDust,
+                        onShake: store.shakeDust,
+                        onSweep: store.sweepDustByHand,
+                        onClose: store.closeDust
                     )
                     .transition(.opacity)
                 }
@@ -42,24 +56,45 @@ struct GameView: View {
                         .transition(.scale(scale: 0.8).combined(with: .opacity))
                         .allowsHitTesting(false)
                 }
+
+                if let note = store.dustFlash {
+                    VStack {
+                        Text(verbatim: note)
+                            .font(.cozy(12, weight: .semibold))
+                            .foregroundStyle(Palette.line)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .paperCard(fill: Palette.butter, radius: 16)
+                        Spacer()
+                    }
+                    .padding(.top, compact ? 54 : 74)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                }
             }
         }
         .animation(.easeInOut(duration: 0.28), value: store.hint?.id)
         .animation(.easeInOut(duration: 0.28), value: store.puzzle?.id)
         .animation(.easeInOut(duration: 0.28), value: store.stageFlash)
         .animation(.easeInOut(duration: 0.25), value: store.bubble?.id)
+        .animation(.easeInOut(duration: 0.25), value: store.dust?.id)
+        .animation(.easeInOut(duration: 0.25), value: store.dustFlash)
         .onAppear {
+            motion.start()
             withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
                 bounce = true
                 pulse = true
             }
+        }
+        .onDisappear {
+            motion.stop()
         }
     }
 
     // MARK: 상단 바
 
     private func topBar(compact: Bool) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             RoundIconButton(systemName: "house.fill", accessibility: "타이틀 화면으로") {
                 store.backToTitle()
             }
@@ -76,6 +111,9 @@ struct GameView: View {
 
             Spacer(minLength: 4)
 
+            RoundIconButton(systemName: "book.closed.fill", fill: Palette.cream, accessibility: "스크랩북") {
+                store.openScrapbook()
+            }
             RoundIconButton(systemName: "lightbulb.fill", fill: Palette.butter, accessibility: "힌트 보기") {
                 store.requestHint()
             }
@@ -95,20 +133,46 @@ struct GameView: View {
             ZStack {
                 RoomSceneView(room: store.room)
 
+                ForEach(store.collectibles) { collectible in
+                    collectibleButton(collectible, in: geo.size)
+                }
+
                 ForEach(store.hotspots) { hotspot in
                     hotspotButton(hotspot, in: geo.size)
                 }
 
                 HStack(alignment: .bottom, spacing: 0) {
-                    PaperKid(kind: .momo)
-                        .offset(y: bounce ? -2 : 0)
-                    PaperKid(kind: .pico)
-                        .offset(y: bounce ? 0 : -2)
+                    if store.character == .momo {
+                        PaperKid(kind: .momo)
+                            .offset(y: bounce ? -2 : 0)
+                        PaperKid(kind: .pico)
+                            .scaleEffect(0.82)
+                            .opacity(0.55)
+                            .offset(y: bounce ? 0 : -2)
+                    } else {
+                        PaperKid(kind: .momo)
+                            .scaleEffect(0.82)
+                            .opacity(0.55)
+                            .offset(y: bounce ? -2 : 0)
+                        PaperKid(kind: .pico)
+                            .offset(y: bounce ? 0 : -2)
+                    }
                     Spacer()
                 }
                 .padding(.leading, 8)
                 .padding(.bottom, 2)
                 .allowsHitTesting(false)
+
+                VStack {
+                    HStack {
+                        characterSwitch
+                        Spacer()
+                        craneBadge
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 6)
 
                 HStack {
                     RoundIconButton(systemName: "chevron.left", accessibility: "왼쪽 방으로") {
@@ -143,22 +207,79 @@ struct GameView: View {
             .shadow(color: Palette.shadow, radius: 10, x: 0, y: 4)
             .padding(.horizontal, 10)
         }
-        .frame(minHeight: compact ? 160 : 300)
+        .frame(minHeight: compact ? 170 : 300)
+    }
+
+    /// 모모 ↔ 피코 전환 스위치. 지금 조종 중인 캐릭터가 진하게 보인다.
+    private var characterSwitch: some View {
+        HStack(spacing: 4) {
+            ForEach(PlayableCharacter.allCases, id: \.rawValue) { character in
+                let active = store.character == character
+                Button {
+                    if !active {
+                        store.toggleCharacter()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(verbatim: character.glyph)
+                            .font(.system(size: 13))
+                        Text(verbatim: character.shortName)
+                            .font(.cozy(10.5, weight: .semibold))
+                            .foregroundStyle(Palette.line)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(active ? Palette.butter : Palette.cream.opacity(0.85)))
+                    .overlay(
+                        Capsule()
+                            .stroke(Palette.lineSoft.opacity(active ? 0.8 : 0.35), lineWidth: 1.1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(verbatim: "\(character.displayName)으로 조종"))
+                .accessibilityHint(Text(verbatim: character.trait))
+            }
+        }
+        .padding(3)
+        .background(Capsule().fill(Palette.paper.opacity(0.75)))
+    }
+
+    private var craneBadge: some View {
+        Button {
+            store.openScrapbook()
+        } label: {
+            HStack(spacing: 4) {
+                Text(verbatim: "🕊")
+                    .font(.system(size: 12))
+                Text(verbatim: "\(store.craneCount)/\(store.craneGoal)")
+                    .font(.cozy(10.5, weight: .semibold))
+                    .foregroundStyle(Palette.line)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(Palette.paper.opacity(0.8)))
+            .overlay(Capsule().stroke(Palette.lineSoft.opacity(0.35), lineWidth: 1.1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(verbatim: "스크랩북에 모은 종이학 \(store.craneCount)마리"))
     }
 
     private func hotspotButton(_ hotspot: Hotspot, in size: CGSize) -> some View {
-        Button {
+        let needsOtherCharacter = hotspot.requiredCharacter != nil
+            && hotspot.requiredCharacter != store.character
+
+        return Button {
             store.tap(hotspot)
         } label: {
             ZStack {
                 Circle()
-                    .stroke(Palette.butter, lineWidth: 1.3)
+                    .stroke(needsOtherCharacter ? Palette.lineSoft.opacity(0.4) : Palette.butter, lineWidth: 1.3)
                     .frame(width: 54, height: 54)
-                    .scaleEffect(pulse ? 1.22 : 1.0)
-                    .opacity(pulse ? 0.0 : 0.8)
+                    .scaleEffect(pulse && !needsOtherCharacter ? 1.22 : 1.0)
+                    .opacity(pulse && !needsOtherCharacter ? 0.0 : 0.8)
 
                 Circle()
-                    .fill(Palette.cream.opacity(0.94))
+                    .fill(Palette.cream.opacity(needsOtherCharacter ? 0.7 : 0.94))
                     .frame(width: 50, height: 50)
                 Circle()
                     .stroke(Palette.lineSoft.opacity(0.45), lineWidth: 1.1)
@@ -166,6 +287,7 @@ struct GameView: View {
 
                 Text(verbatim: hotspot.glyph)
                     .font(.system(size: 24))
+                    .saturation(needsOtherCharacter ? 0.35 : 1)
             }
             .shadow(color: Palette.shadow, radius: 6, x: 0, y: 2)
         }
@@ -175,6 +297,32 @@ struct GameView: View {
             y: size.height * CGFloat(hotspot.position.y)
         )
         .accessibilityLabel(Text(verbatim: hotspot.label))
+        .accessibilityHint(Text(verbatim: hotspot.requiredCharacter.map { "\($0.shortName)만 만질 수 있다" } ?? ""))
+    }
+
+    private func collectibleButton(_ collectible: Collectible, in size: CGSize) -> some View {
+        Button {
+            store.collect(collectible)
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Palette.butter.opacity(0.28))
+                    .frame(width: 34, height: 34)
+                Circle()
+                    .stroke(Palette.butterDeep.opacity(0.65), lineWidth: 1)
+                    .frame(width: 34, height: 34)
+                Text(verbatim: collectible.glyph)
+                    .font(.system(size: 15))
+                    .opacity(pulse ? 0.75 : 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .position(
+            x: size.width * CGFloat(collectible.position.x),
+            y: size.height * CGFloat(collectible.position.y)
+        )
+        .accessibilityLabel(Text(verbatim: "숨은 \(collectible.label)"))
+        .accessibilityHint(Text(verbatim: "눌러서 스크랩북에 붙인다"))
     }
 
     // MARK: 대사 영역

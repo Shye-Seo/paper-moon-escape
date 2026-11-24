@@ -42,6 +42,9 @@ enum Palette {
         case .gearStairs: return Color(red: 0.604, green: 0.529, blue: 0.580)
         case .gearRoom: return Color(red: 0.776, green: 0.659, blue: 0.549)
         case .belfry: return Color(red: 0.220, green: 0.251, blue: 0.361)
+        case .cellarStairs: return Color(red: 0.435, green: 0.373, blue: 0.318)
+        case .cellarPantry: return Color(red: 0.478, green: 0.396, blue: 0.337)
+        case .cellarVault: return Color(red: 0.263, green: 0.243, blue: 0.298)
         }
     }
 
@@ -53,6 +56,8 @@ enum Palette {
         case .glassHouse: return Color(red: 0.341, green: 0.369, blue: 0.408)
         case .gearStairs, .gearRoom: return Color(red: 0.478, green: 0.392, blue: 0.333)
         case .belfry: return Color(red: 0.184, green: 0.212, blue: 0.329)
+        case .cellarStairs, .cellarPantry: return Color(red: 0.353, green: 0.286, blue: 0.235)
+        case .cellarVault: return Color(red: 0.208, green: 0.192, blue: 0.243)
         }
     }
 
@@ -64,6 +69,9 @@ enum Palette {
         case .glassHouse: return butter
         case .gearStairs, .gearRoom: return butter
         case .belfry: return rose
+        case .cellarStairs: return butter
+        case .cellarPantry: return rose
+        case .cellarVault: return candle
         }
     }
 
@@ -72,6 +80,7 @@ enum Palette {
         case .attic: return butter
         case .greenhouse: return sage
         case .clocktower: return rose
+        case .cellar: return mauve
         }
     }
 

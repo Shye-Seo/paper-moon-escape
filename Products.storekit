@@ -1,0 +1,83 @@
+{
+  "identifier" : "9F3C21A0",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "4900",
+      "familyShareable" : false,
+      "internalID" : "PAPERMOON-FULL-UNLOCK",
+      "localizations" : [
+        {
+          "description" : "1장면 무료 체험 뒤 2장면 온실과 3장면 시계탑, 엔딩까지 연다.",
+          "displayName" : "본편 전체 잠금해제",
+          "locale" : "ko"
+        },
+        {
+          "description" : "Unlock the greenhouse and clocktower chapters plus the ending.",
+          "displayName" : "Full Story Unlock",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.quoguri.papermooneescape.fullunlock",
+      "referenceName" : "Full Unlock",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "2900",
+      "familyShareable" : false,
+      "internalID" : "PAPERMOON-CELLAR-CHAPTER",
+      "localizations" : [
+        {
+          "description" : "본편 클리어 후 열리는 보너스 4장면. 지하실 세 방과 지하실 엔딩.",
+          "displayName" : "비밀 다락방 지하실",
+          "locale" : "ko"
+        },
+        {
+          "description" : "A bonus chapter with three cellar rooms, new puzzles and its own ending.",
+          "displayName" : "Secret Cellar Chapter",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.quoguri.papermooneescape.cellarchapter",
+      "referenceName" : "Cellar Chapter",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "1500",
+      "familyShareable" : false,
+      "internalID" : "PAPERMOON-HINT-PASS",
+      "localizations" : [
+        {
+          "description" : "힌트 1·2단계를 횟수 제한 없이 본다.",
+          "displayName" : "힌트 무제한 패스",
+          "locale" : "ko"
+        },
+        {
+          "description" : "See every two-step hint without a limit.",
+          "displayName" : "Unlimited Hint Pass",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.quoguri.papermooneescape.hintspass",
+      "referenceName" : "Hint Pass",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "ko",
+    "_storefront" : "KOR",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

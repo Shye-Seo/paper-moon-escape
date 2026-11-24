@@ -18,7 +18,20 @@ enum ItemCatalog {
 
         Item(id: .windKey, name: "태엽 열쇠", glyph: "🔧", note: "손때가 묻어 반들반들한 태엽 열쇠."),
         Item(id: .gear, name: "작은 톱니바퀴", glyph: "⚙️", note: "이빨이 고른 작은 톱니바퀴."),
-        Item(id: .clockPart, name: "시계 부품", glyph: "🧰", note: "태엽 열쇠와 톱니를 맞물려 만든 부품.")
+        Item(id: .clockPart, name: "시계 부품", glyph: "🧰", note: "태엽 열쇠와 톱니를 맞물려 만든 부품."),
+
+        // 1장면 · 종이접기와 등불
+        Item(id: .paperSheet, name: "종이 도면", glyph: "📜", note: "반으로 접힌 자국이 남은 크림색 종이 한 장."),
+        Item(id: .paperMoonLamp, name: "종이달 등불", glyph: "🏮", note: "접어서 만든 달 모양 종이 등불. 아직 심지가 비어 있다."),
+        Item(id: .candleStub, name: "짧은 초", glyph: "🕯", note: "쥐구멍 안에서 굴러나온 짧은 초. 심지가 살아 있다."),
+        Item(id: .moonLamp, name: "켜진 종이달 등불", glyph: "🌙", note: "초에 불이 붙어 달 모양 종이가 은은하게 빛난다."),
+
+        // 보너스 장면 · 지하실
+        Item(id: .vellumPage, name: "양피지 한 장", glyph: "📃", note: "지하실 서랍에 접혀 있던 두꺼운 양피지."),
+        Item(id: .oilLamp, name: "기름등잔", glyph: "🪔", note: "벽 고리에 걸려 있던 작은 기름등잔. 심지에 기름이 남아 있다."),
+        Item(id: .rustyHandle, name: "녹슨 손잡이", glyph: "🔩", note: "철문 손잡이 대신 끼울 수 있을 만한 녹슨 쇠 손잡이."),
+        Item(id: .paperBoat, name: "접은 종이배", glyph: "⛵", note: "양피지로 접은 작은 배. 물에 띄우면 잠깐은 뜬다."),
+        Item(id: .vaultKey, name: "금고 열쇠", glyph: "🗝", note: "젖은 바닥에서 건져 낸 작고 무거운 열쇠.")
     ]
 }
 
@@ -49,6 +62,13 @@ enum ComboCatalog {
             b: .gear,
             result: .clockPart,
             text: "태엽 열쇠에 작은 톱니를 맞물려 시계 부품을 만들었다."
+        ),
+        Combo(
+            a: .paperMoonLamp,
+            b: .candleStub,
+            result: .moonLamp,
+            text: "종이달 등불의 빈 심지에 짧은 초를 끼우고 불을 붙였다. 종이가 달빛처럼 은은하게 밝아진다.",
+            flag: Flags.lampLit
         )
     ]
 }

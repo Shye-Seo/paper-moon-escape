@@ -25,6 +25,8 @@ targets:
     platform: iOS
     sources:
       - path: App
+      - path: Products.storekit
+        buildPhase: none
     dependencies:
       - package: PaperMoonCore
     settings:
