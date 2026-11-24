@@ -9,17 +9,21 @@ public final class GameEngine {
     public private(set) var entitlements: Entitlements
     private let store: SaveStore?
     private let clock: () -> Date
+    /// 탐색 지점의 주사위. 테스트는 고정값을 넣어 결과를 재현한다.
+    private let random: () -> Double
 
     public init(
         world: World = .paperMoon,
         state: GameState? = nil,
         store: SaveStore? = nil,
         entitlements: Entitlements = .full,
-        clock: @escaping () -> Date = { Date() }
+        clock: @escaping () -> Date = { Date() },
+        random: @escaping () -> Double = { Double.random(in: 0..<1) }
     ) {
         self.world = world
         self.clock = clock
         self.store = store
+        self.random = random
         self.entitlements = entitlements
         if let state {
             self.state = state
@@ -72,9 +76,22 @@ public final class GameEngine {
         }
     }
 
-    /// 이 방에서 아직 줍지 않은 수집품.
+    /// 이 방에서 아직 찾지 못한 탐색 지점.
+    public func visibleSearches() -> [SearchSpot] {
+        world.searchSpots(in: state.room).filter { !state.hasFound($0.id) }
+    }
+
+    /// 탐색 지점에서 실패한 횟수.
+    public func searchTries(_ id: String) -> Int {
+        state.searchTries(for: id)
+    }
+
+    /// 이 방에서 아직 줍지 않은 수집품. 탐색으로만 나오는 것은 여기 넣지 않는다.
     public var visibleCollectibles: [Collectible] {
-        world.collectibles(in: state.room).filter { !state.collected.contains($0.id) }
+        world.collectibles(in: state.room).filter { collectible in
+            !state.collected.contains(collectible.id)
+                && !world.isSearchOnly(collectible.id)
+        }
     }
 
     public func currentHint() -> Hint? {
@@ -331,6 +348,18 @@ public final class GameEngine {
         guard collectible.room == state.room else {
             return finish([.blocked("이 방에서는 \(collectible.label)이(가) 보이지 않는다. 다른 방을 살펴보자.")])
         }
+        if world.isSearchOnly(id) {
+            return finish([
+                .line(.narration("\(collectible.label)은(는) 눈에 바로 보이지 않는다. 방 안을 꼼꼼히 더듬어 보자.")),
+                .reaction(.pico, "🔍")
+            ])
+        }
+        return claimCollectible(id)
+    }
+
+    /// 수집품을 실제로 스크랩북에 붙인다. 직접 줍기와 탐색 발견이 함께 쓴다.
+    private func claimCollectible(_ id: CollectibleID) -> [GameEvent] {
+        guard let collectible = world.collectible(id) else { return [] }
         guard !state.collected.contains(id) else {
             return finish([.line(.narration("\(collectible.label)은(는) 이미 스크랩북에 붙어 있다."))])
         }
@@ -392,6 +421,120 @@ public final class GameEngine {
         var events: [GameEvent] = [.dustCleared(id), .line(.narration(panel.revealText))]
         apply(panel.effects, into: &events)
         return finish(events)
+    }
+
+    // MARK: - 탐색
+
+    /// 꼼꼼히 더듬어 본다. 확률로 발견되고, 천장(`maxAttempts`)번 안에는 반드시 찾는다.
+    public func search(_ id: String) -> [GameEvent] {
+        guard let spot = world.searchSpot(id) else { return [] }
+        guard spot.room == state.room else {
+            return finish([.blocked("지금 방에 있는 자리만 더듬어 볼 수 있다.")])
+        }
+        if state.hasFound(id) {
+            return finish([.line(.narration(spot.repeatText))])
+        }
+        if let required = spot.requiredCharacter, required != state.activeCharacter {
+            let note = spot.characterNote
+                ?? "\(spot.label)은(는) \(required.displayName)의 손이 필요해 보인다. 캐릭터를 바꿔 보자."
+            return finish([
+                .line(.narration(note)),
+                .reaction(required.reactionCharacter, required == .momo ? "🙂" : "🐾")
+            ])
+        }
+        if !state.satisfiesAll(spot.requires) {
+            return finish([
+                .line(.narration(spot.blocked ?? "아직은 손이 닿지 않는다.")),
+                .reaction(.pico, "🤔")
+            ])
+        }
+
+        let failures = state.searchTries(for: id)
+        let attempt = failures + 1
+        // 천장에 닿았거나 주사위가 확률 안에 들면 발견. 천장에서는 확률이 1.0이다.
+        let chance = spot.chance(afterFailures: failures)
+        let discovered = attempt >= spot.maxAttempts || random() < chance
+        if discovered {
+            return foundInSearch(spot, attempts: attempt)
+        }
+        state.searchTries[id] = attempt
+        return finish([
+            .searchMissed(spot.id, attempt: attempt, ceiling: spot.maxAttempts),
+            .line(.narration(spot.observation(onFailed: attempt))),
+            .reaction(.pico, "🔍")
+        ])
+    }
+
+    private func foundInSearch(_ spot: SearchSpot, attempts: Int) -> [GameEvent] {
+        state.searchTries[spot.id] = attempts
+        state.foundSearches.insert(spot.id)
+        for flag in spot.flags {
+            state.flags.insert(flag)
+        }
+        var events: [GameEvent] = [
+            .searchFound(spot.id),
+            .line(.narration(spot.foundText))
+        ]
+        switch spot.reward {
+        case .item(let item):
+            if !state.inventory.contains(item) {
+                state.inventory.append(item)
+                events.append(.itemAdded(item))
+            }
+        case .collectible(let collectible):
+            // 탐색으로 찾은 수집품은 같은 저장 단계 안에서 바로 스크랩북에 붙는다.
+            events.append(contentsOf: claimCollectible(collectible))
+        }
+        events.append(.reaction(.momo, "🔍"))
+        return finish(events)
+    }
+
+    // MARK: - 종이접기 한 번씩
+
+    /// 도안대로 한 번 접는다. 순서가 틀리면 접힘이 **전부 풀리고** 처음부터 다시 접어야 한다.
+    public func foldStep(_ puzzleID: PuzzleID, step: Int) -> [GameEvent] {
+        guard let puzzle = world.puzzle(puzzleID), puzzle.kind == .origami else { return [] }
+        guard !state.solvedPuzzles.contains(puzzleID) else {
+            return finish([.line(.narration("이미 다 접어 낸 종이다."))])
+        }
+        var steps = state.foldSteps(for: puzzleID)
+        guard steps.count < puzzle.solution.count else {
+            return finish([.line(.narration(puzzle.retryText))])
+        }
+        let position = steps.count
+        if puzzle.solution[position] == step {
+            steps.append(step)
+            state.foldProgress[puzzleID.rawValue] = steps
+            if steps.count == puzzle.solution.count {
+                state.foldProgress[puzzleID.rawValue] = nil
+                var events: [GameEvent] = []
+                applyPuzzleSuccess(puzzle, into: &events)
+                return finish(events)
+            }
+            return finish([.foldAccepted(puzzleID, position: steps.count)])
+        }
+        // 잘못 접힘: 접힌 자리가 모두 풀린다.
+        state.foldProgress[puzzleID.rawValue] = []
+        let attempts = (state.puzzleAttempts[puzzleID.rawValue] ?? 0) + 1
+        state.puzzleAttempts[puzzleID.rawValue] = attempts
+        let text = puzzle.resetText ?? "접힌 자리가 어긋나 종이가 탁 풀렸다. \(puzzle.retryText)"
+        return finish([
+            .foldUnfolded(puzzleID, attempts: attempts),
+            .line(.narration(text)),
+            .reaction(.pico, "😵")
+        ])
+    }
+
+    /// 지금까지 접은 순서.
+    public func foldProgress(_ puzzleID: PuzzleID) -> [Int] {
+        state.foldSteps(for: puzzleID)
+    }
+
+    /// 손으로 펼쳐 처음부터.
+    public func clearFolds(_ puzzleID: PuzzleID) -> [GameEvent] {
+        guard state.foldProgress[puzzleID.rawValue] != nil else { return [] }
+        state.foldProgress[puzzleID.rawValue] = nil
+        return finish([.foldCleared(puzzleID)])
     }
 
     // MARK: - 인벤토리와 조합
@@ -468,9 +611,8 @@ public final class GameEngine {
             return finish([.line(.narration("이미 풀린 퍼즐이다. 다른 곳을 둘러보자."))])
         }
         if answer == puzzle.solution {
-            state.solvedPuzzles.insert(puzzleID)
-            var events: [GameEvent] = [.puzzleSolved(puzzleID), .reaction(.pico, "🎉")]
-            apply(puzzle.rewards, into: &events)
+            var events: [GameEvent] = []
+            applyPuzzleSuccess(puzzle, into: &events)
             return finish(events)
         }
         let attempts = (state.puzzleAttempts[puzzleID.rawValue] ?? 0) + 1
@@ -480,6 +622,15 @@ public final class GameEngine {
             .line(.narration(puzzle.retryText)),
             .reaction(.pico, "😵")
         ])
+    }
+
+    /// 정답일 때의 공통 처리. 퍼즐 판의 확인과 종이접기 한 번씩이 함께 쓴다.
+    private func applyPuzzleSuccess(_ puzzle: Puzzle, into events: inout [GameEvent]) {
+        state.solvedPuzzles.insert(puzzle.id)
+        state.foldProgress[puzzle.id.rawValue] = nil
+        events.append(.puzzleSolved(puzzle.id))
+        events.append(.reaction(.pico, "🎉"))
+        apply(puzzle.rewards, into: &events)
     }
 
     // MARK: - 힌트
@@ -514,6 +665,61 @@ public final class GameEngine {
         ])
     }
 
+    // MARK: - 놀이방(엔딩 뒤 해금)
+
+    /// 본편 엔딩을 본 뒤에만 다락방 놀이방이 열린다.
+    public var playroomUnlocked: Bool {
+        state.finished || state.clearedStages.contains(.clocktower)
+    }
+
+    public var miniGameRecords: MiniGameRecords {
+        state.miniGames
+    }
+
+    public func miniGameRecord(for id: MiniGameID, difficulty: MiniGameDifficulty) -> MiniGameRecord? {
+        state.miniGames.record(for: id, difficulty: difficulty)
+    }
+
+    /// 기억의 서랍 한 판의 결과를 저장한다. 놀이방이 안 열려 있으면 저장하지 않는다.
+    @discardableResult
+    public func recordMemoryResult(
+        difficulty: MiniGameDifficulty,
+        moves: Int,
+        seconds: Double,
+        stars: Int
+    ) -> MiniGameRecord? {
+        guard playroomUnlocked else { return nil }
+        let record = state.miniGames.submitMemory(
+            difficulty: difficulty,
+            moves: moves,
+            seconds: seconds,
+            stars: stars,
+            at: clock()
+        )
+        store?.save(state)
+        return record
+    }
+
+    /// 종이접기 연쇄 한 판의 결과를 저장한다.
+    @discardableResult
+    public func recordChallengeResult(
+        difficulty: MiniGameDifficulty,
+        completed: Int,
+        seconds: Double,
+        stars: Int
+    ) -> MiniGameRecord? {
+        guard playroomUnlocked else { return nil }
+        let record = state.miniGames.submitChallenge(
+            difficulty: difficulty,
+            completed: completed,
+            seconds: seconds,
+            stars: stars,
+            at: clock()
+        )
+        store?.save(state)
+        return record
+    }
+
     // MARK: - 초기화와 저장
 
     public func resetStage() -> [GameEvent] {
@@ -530,6 +736,16 @@ public final class GameEngine {
         }
         for hint in world.hints(in: stage.id) {
             state.hintLevels[hint.id] = nil
+        }
+        for spot in world.searchSpots(in: stage.id) {
+            state.searchTries[spot.id] = nil
+            state.foundSearches.remove(spot.id)
+            for flag in spot.flags {
+                state.flags.remove(flag)
+            }
+        }
+        for puzzle in world.puzzles(in: stage.id) {
+            state.foldProgress[puzzle.id.rawValue] = nil
         }
         state.selectedItem = nil
         state.room = stage.rooms.first ?? state.room

@@ -70,6 +70,9 @@ public enum ItemID: String, Codable, CaseIterable, Hashable, Sendable {
 }
 
 /// 화면에서 만질 수 있는 모든 지점.
+/// `highShelf`·`mouseHole`·`pondShelf`·`fireflies`·`gearPile`·`brickNook`은
+/// 한 번 누르면 바로 나오던 예전 지점으로, 지금은 `SearchSpot`(여러 번 더듬는 자리)으로 옮겼다.
+/// 값은 예전 저장 파일의 `claimedHotspots`를 읽을 수 있게 그대로 둔다.
 public enum HotspotID: String, Codable, CaseIterable, Hashable, Sendable {
     case rockingHorse
     case owlClock
@@ -461,6 +464,8 @@ public struct Puzzle: Identifiable, Equatable, Sendable {
     public let revealedCode: String?
     /// 빛 투과 퍼즐에 필요한 빛 도구.
     public let lightSource: ItemID?
+    /// 잘못 접었을 때의 문장. 없으면 `retryText`를 쓴다.
+    public let resetText: String?
 
     public init(
         id: PuzzleID,
@@ -476,7 +481,8 @@ public struct Puzzle: Identifiable, Equatable, Sendable {
         rewards: [Effect],
         goal: String? = nil,
         revealedCode: String? = nil,
-        lightSource: ItemID? = nil
+        lightSource: ItemID? = nil,
+        resetText: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -492,6 +498,7 @@ public struct Puzzle: Identifiable, Equatable, Sendable {
         self.goal = goal
         self.revealedCode = revealedCode
         self.lightSource = lightSource
+        self.resetText = resetText
     }
 
     /// 종잇조각이 몇 개인지. 빛 투과 퍼즐 화면이 조각 배치를 그릴 때 쓴다.

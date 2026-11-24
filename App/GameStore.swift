@@ -10,6 +10,8 @@ final class GameStore: ObservableObject {
         case playing
         case ending
         case bonusEnding
+        /// 엔딩 뒤에 열리는 다락방 놀이방.
+        case playroom
     }
 
     struct Bubble: Identifiable {
@@ -66,6 +68,15 @@ final class GameStore: ObservableObject {
 
     /// 지금 조종 중인 캐릭터.
     @Published private(set) var character: PlayableCharacter = .momo
+    /// 이 방에서 아직 찾지 못한 탐색 지점.
+    @Published private(set) var searches: [SearchSpot] = []
+    /// 탐색 지점별로 지금까지 빗나간 횟수.
+    @Published private(set) var searchProgress: [String: Int] = [:]
+    /// 종이접기 퍼즐에서 지금까지 접은 순서.
+    @Published private(set) var foldSteps: [Int] = []
+    /// 닿는 탐색 지점이 바뀌었을 때 화면에 띄우는 한 줄.
+    @Published private(set) var searchFlash: String?
+
     /// 이 방에서 아직 줍지 않은 종이학·우표.
     @Published private(set) var collectibles: [Collectible] = []
     @Published private(set) var craneCount: Int = 0
@@ -86,6 +97,12 @@ final class GameStore: ObservableObject {
     @Published private(set) var secretGift: SecretGift?
     @Published private(set) var bonusEndingStage: Stage?
 
+    // MARK: 놀이방
+
+    /// 본편을 깬 뒤에만 열린다.
+    @Published private(set) var playroomUnlocked = false
+    @Published private(set) var miniGameRecords = MiniGameRecords()
+
     let world: World
 
     // MARK: 내부
@@ -96,6 +113,7 @@ final class GameStore: ObservableObject {
     private var reactionWork: DispatchWorkItem?
     private var flashWork: DispatchWorkItem?
     private var dustFlashWork: DispatchWorkItem?
+    private var searchFlashWork: DispatchWorkItem?
 
     init(
         world: World = .paperMoon,
@@ -116,8 +134,12 @@ final class GameStore: ObservableObject {
         self.hasSave = resolvedStore.load() != nil
         self.character = self.engine.activeCharacter
         self.collectibles = self.engine.visibleCollectibles
+        self.searches = self.engine.visibleSearches()
+        self.searchProgress = self.engine.state.searchTries
         self.craneCount = self.engine.state.collectedCranes
         self.stampCount = self.engine.state.collectedStamps
+        self.playroomUnlocked = self.engine.playroomUnlocked
+        self.miniGameRecords = self.engine.miniGameRecords
         self.entitlements = self.engine.entitlements
     }
 
@@ -227,6 +249,55 @@ final class GameStore: ObservableObject {
         handle(engine.collect(collectible.id))
     }
 
+    // MARK: 탐색과 접기
+
+    /// 꼼꼼히 더듬어 본다. 빗나가면 관찰 문장이, 찾으면 아이템이 온다.
+    func search(_ spot: SearchSpot) {
+        handle(engine.search(spot.id))
+    }
+
+    /// 이 자리를 몇 번이나 빗나갔는지.
+    func searchTries(_ spot: SearchSpot) -> Int {
+        searchProgress[spot.id] ?? 0
+    }
+
+    /// 종이를 한 번 접는다. 틀리면 접힘이 풀린다.
+    func fold(step: Int) {
+        guard let puzzle else { return }
+        handle(engine.foldStep(puzzle.id, step: step))
+    }
+
+    /// 손으로 펼쳐 처음부터.
+    func resetFolds() {
+        guard let puzzle else { return }
+        handle(engine.clearFolds(puzzle.id))
+    }
+
+    // MARK: 놀이방
+
+    func openPlayroom() {
+        guard playroomUnlocked else { return }
+        phase = .playroom
+    }
+
+    func closePlayroom() {
+        phase = .title
+    }
+
+    func recordMemoryResult(difficulty: MiniGameDifficulty, moves: Int, seconds: Double, stars: Int) {
+        _ = engine.recordMemoryResult(difficulty: difficulty, moves: moves, seconds: seconds, stars: stars)
+        miniGameRecords = engine.miniGameRecords
+    }
+
+    func recordChallengeResult(difficulty: MiniGameDifficulty, completed: Int, seconds: Double, stars: Int) {
+        _ = engine.recordChallengeResult(difficulty: difficulty, completed: completed, seconds: seconds, stars: stars)
+        miniGameRecords = engine.miniGameRecords
+    }
+
+    func miniGameRecord(for id: MiniGameID, difficulty: MiniGameDifficulty) -> MiniGameRecord? {
+        miniGameRecords.record(for: id, difficulty: difficulty)
+    }
+
     func requestHint() {
         handle(engine.requestHint())
     }
@@ -242,6 +313,7 @@ final class GameStore: ObservableObject {
     func closePuzzle() {
         puzzle = nil
         puzzleMisses = 0
+        foldSteps = []
     }
 
     func submitPuzzle(answer: [Int]) {
@@ -400,10 +472,12 @@ final class GameStore: ObservableObject {
                 if let opened = world.puzzle(puzzleID) {
                     puzzle = opened
                     puzzleMisses = 0
+                    foldSteps = engine.foldProgress(puzzleID)
                 }
             case .puzzleSolved:
                 puzzle = nil
                 puzzleMisses = 0
+                foldSteps = []
             case .hint(let id, let level, let text, let hasMore):
                 hint = HintCard(id: id, level: level, text: text, hasMore: hasMore)
             case .stageCleared(let stageID):
@@ -440,6 +514,26 @@ final class GameStore: ObservableObject {
                 showingShop = true
             case .blocked(let text):
                 showBubble(Bubble(line: .narration(text)))
+            case .searchMissed(let id, let attempt, let ceiling):
+                if let spot = world.searchSpot(id) {
+                    showSearchFlash("\(spot.label) · \(attempt)/\(ceiling)번째 더듬기")
+                }
+                searchProgress = engine.state.searchTries
+            case .searchFound(let id):
+                if let spot = world.searchSpot(id) {
+                    showSearchFlash("\(spot.label)에서 무언가 찾았다")
+                }
+                searchProgress = engine.state.searchTries
+            case .foldAccepted(let puzzleID, let position):
+                foldSteps = engine.foldProgress(puzzleID)
+                if position > 0, let opened = world.puzzle(puzzleID) {
+                    showSearchFlash("\(position)/\(opened.solution.count) 접기 · \(opened.title)")
+                }
+            case .foldUnfolded(let puzzleID, _):
+                foldSteps = engine.foldProgress(puzzleID)
+                showSearchFlash("접힘이 풀렸다. 처음부터 다시")
+            case .foldCleared(let puzzleID):
+                foldSteps = engine.foldProgress(puzzleID)
             case .itemAdded, .itemRemoved, .crafted, .selection,
                  .roomChanged, .stageStarted, .puzzleMissed:
                 break
@@ -458,8 +552,12 @@ final class GameStore: ObservableObject {
         hasSave = saveStore.load() != nil
         character = engine.activeCharacter
         collectibles = engine.visibleCollectibles
+        searches = engine.visibleSearches()
+        searchProgress = engine.state.searchTries
         craneCount = engine.state.collectedCranes
         stampCount = engine.state.collectedStamps
+        playroomUnlocked = engine.playroomUnlocked
+        miniGameRecords = engine.miniGameRecords
     }
 
     private func showBubble(_ newBubble: Bubble) {
@@ -512,5 +610,19 @@ final class GameStore: ObservableObject {
         }
         dustFlashWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.4, execute: work)
+    }
+
+    /// 탐색·접기 진행을 잠깐 띄우는 한 줄.
+    private func showSearchFlash(_ text: String) {
+        searchFlash = text
+        searchFlashWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            if self.searchFlash == text {
+                self.searchFlash = nil
+            }
+        }
+        searchFlashWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: work)
     }
 }

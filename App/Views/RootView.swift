@@ -81,6 +81,17 @@ struct TitleView: View {
                     Button("스테이지 선택", action: store.openStageSelect)
                         .buttonStyle(CozyButtonStyle(fill: Palette.cream))
 
+                    if store.playroomUnlocked {
+                        Button {
+                            store.openPlayroom()
+                        } label: {
+                            Label("다락방 놀이방", systemImage: "sparkles")
+                                .font(.cozy(14, weight: .semibold))
+                        }
+                        .buttonStyle(CozyButtonStyle(fill: Palette.sage.opacity(0.55)))
+                        .accessibilityHint(Text(verbatim: "엔딩 뒤에 열린 기억의 서랍과 종이접기 연쇄"))
+                    }
+
                     HStack(spacing: 10) {
                         Button {
                             store.openScrapbook()
@@ -335,6 +346,13 @@ struct EndingView: View {
                     VStack(spacing: 10) {
                         Button("스크랩북 열기", action: store.openScrapbook)
                             .buttonStyle(CozyButtonStyle(fill: Palette.cream))
+                        Button {
+                            store.openPlayroom()
+                        } label: {
+                            Label("다락방 놀이방에서 한 판 더", systemImage: "sparkles")
+                                .font(.cozy(14, weight: .semibold))
+                        }
+                        .buttonStyle(CozyButtonStyle(fill: Palette.sage.opacity(0.55)))
                         if let bonus = store.bonusStage {
                             Button(store.isStageUnlocked(.cellar) ? "보너스 지하실로" : "보너스 지하실 · \(StoreProduct.cellarChapter.priceText)") {
                                 if store.isStageUnlocked(.cellar) {
@@ -443,6 +461,13 @@ struct BonusEndingView: View {
                     VStack(spacing: 10) {
                         Button("스크랩북 열기", action: store.openScrapbook)
                             .buttonStyle(CozyButtonStyle(fill: Palette.cream))
+                        Button {
+                            store.openPlayroom()
+                        } label: {
+                            Label("다락방 놀이방", systemImage: "sparkles")
+                                .font(.cozy(14, weight: .semibold))
+                        }
+                        .buttonStyle(CozyButtonStyle(fill: Palette.sage.opacity(0.55)))
                         Button("본편 엔딩 다시 보기", action: store.openStageSelect)
                             .buttonStyle(CozyButtonStyle(fill: Palette.butter))
                         Button("타이틀로", action: store.backToTitle)
@@ -559,6 +584,8 @@ struct RootView: View {
                 EndingView(store: store)
             case .bonusEnding:
                 BonusEndingView(store: store)
+            case .playroom:
+                PlayroomView(store: store)
             }
 
             if let gift = store.secretGift {

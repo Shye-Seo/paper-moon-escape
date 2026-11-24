@@ -125,21 +125,6 @@ enum ClocktowerStage {
             ]
         ),
         Hotspot(
-            id: .gearPile,
-            room: .towerGears,
-            label: "톱니 더미",
-            glyph: "🔧",
-            position: ScenePoint(0.76, 0.76),
-            requires: [.solved(.gearDials)],
-            blocked: "톱니가 서로 잠겨 있다. 다이얼을 먼저 맞춰야 움직일 것 같다.",
-            effects: [
-                .say(.narration("맞물린 톱니 사이에서 작은 톱니바퀴 하나를 빼냈다.")),
-                .give(.gear),
-                .flag(Flags.gearTaken)
-            ],
-            repeatText: "톱니 더미엔 작은 부품 하나가 남아 있다."
-        ),
-        Hotspot(
             id: .windSocket,
             room: .towerGears,
             label: "태엽 구멍",
@@ -252,6 +237,43 @@ enum ClocktowerStage {
         )
     ]
 
+    static let searchSpots: [SearchSpot] = [
+        SearchSpot(
+            id: "tower.gearPile",
+            room: .towerGears,
+            label: "톱니 더미",
+            glyph: "🔧",
+            position: ScenePoint(0.76, 0.76),
+            requires: [.solved(.gearDials)],
+            blocked: "톱니가 서로 잠겨 있다. 다이얼을 먼저 맞춰야 움직일 것 같다.",
+            odds: [0.35, 0.60, 0.82, 1.0],
+            observations: [
+                "맞물린 톱니 사이로 손을 넣어 보지만 끝이 닫혀 있다. 톱니가 걸린 소리만 난다.",
+                "작은 톱니가 안쪽으로 밀려 들어갔다. 손목을 더 넣으면 닿을 것 같다."
+            ],
+            foundText: "맞물린 톱니 사이를 더듬어 작은 톱니바퀴 하나를 빼냈다.",
+            reward: .item(.gear),
+            flags: [Flags.gearTaken],
+            repeatText: "톱니 더미엔 작은 부품 하나가 남아 있다."
+        ),
+        SearchSpot(
+            id: "tower.woodBoxUnderside",
+            room: .towerStairs,
+            label: "나무 상자 밑",
+            glyph: "🏷",
+            position: ScenePoint(0.58, 0.88),
+            odds: [0.25, 0.50, 0.75, 1.0],
+            observations: [
+                "상자 밑으로 손가락을 넣어 보다. 먼지와 톱니 모양 자국만 묻어난다.",
+                "바닥 널이 조금 들이켜 있다. 안쪽에 얇은 종이가 깔려 있는 것 같다.",
+                "손끝에 톱니 그림이 만져진다. 종이 한 장이 끼어 있다."
+            ],
+            foundText: "상자 밑 바닥에서 톱니바퀴가 인쇄된 오래된 우표를 꺼냈다.",
+            reward: .collectible(.stampTower),
+            repeatText: "상자 밑은 먼지와 톱니 자국만 남아 있다."
+        )
+    ]
+
     static let hints: [Hint] = [
         Hint(
             id: "tower.progress.1",
@@ -265,7 +287,7 @@ enum ClocktowerStage {
             stage: .clocktower,
             doneIf: .flag(Flags.gearTaken),
             levelOne: "다이얼이 돌기 시작하면, 잠겨 있던 톱니 더미가 조금 열린다.",
-            levelTwo: "톱니 더미를 눌러 작은 톱니바퀴를 꺼내자."
+            levelTwo: "톱니 더미를 여러 번 더듬어 작은 톱니바퀴를 꺼내자. 다이얼을 맞추지 않으면 더미가 열리지 않는다."
         ),
         Hint(
             id: "tower.progress.3",

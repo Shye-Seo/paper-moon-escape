@@ -288,6 +288,8 @@ SWIFTUI_TYPES = {
     "App", "Scene", "WindowGroup", "View", "ViewModifier", "ButtonStyle",
     "Configuration", "Content", "Body", "AnyView", "EmptyView", "MainActor",
     "Sendable", "Codable", "Identifiable", "Equatable", "Hashable", "CaseIterable",
+    "State", "StateObject", "ObservedObject", "EnvironmentObject", "Published",
+    "ViewBuilder", "AnimationTimeline", "AsyncImage", "TimelineView",
     "Text", "Print", "Self",
 }
 
@@ -374,6 +376,10 @@ REQUIRED_FILES = [
     "Packages/PaperMoonCore/Sources/PaperMoonCore/DustPanel.swift",
     "Packages/PaperMoonCore/Sources/PaperMoonCore/Collectibles.swift",
     "Packages/PaperMoonCore/Sources/PaperMoonCore/World/CellarStage.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/Search.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/MiniGame.swift",
+    "Packages/PaperMoonCore/Sources/PaperMoonCore/LightReadout.swift",
+    "App/Views/PlayroomView.swift",
     "Packages/PaperMoonCore/Sources/PaperMoonCore/World/ScrapbookCatalog.swift",
     "Packages/PaperMoonCore/Sources/PaperMoonCore/World/DustCatalog.swift",
 ]
@@ -444,13 +450,69 @@ def check_feature_wiring() -> list[str]:
         if needle not in game_store:
             problems.append(f"GameStore에 '{needle}' 처리가 없다")
 
+    # 탐색 확률·천장 규칙
+    search = read_text("Packages/PaperMoonCore/Sources/PaperMoonCore/Search.swift")
+    for needle in ["maxAttempts", "chance(afterFailures", "observation(onFailed", "odds"]:
+        if needle not in search:
+            problems.append(f"Search.swift에 '{needle}' 규칙이 없다")
+    engine = read_text("Packages/PaperMoonCore/Sources/PaperMoonCore/GameEngine.swift")
+    for needle in ["func search(", "foundInSearch", "func foldStep(", "playroomUnlocked",
+                   "recordMemoryResult", "recordChallengeResult"]:
+        if needle not in engine:
+            problems.append(f"GameEngine에 '{needle}' 배선이 없다")
+    for stage_file in ["AtticStage", "GreenhouseStage", "ClocktowerStage", "CellarStage"]:
+        text = read_text(f"Packages/PaperMoonCore/Sources/PaperMoonCore/World/{stage_file}.swift")
+        if "static let searchSpots: [SearchSpot]" not in text:
+            problems.append(f"{stage_file}에 탐색 지점이 없다")
+    world_source = read_text("Packages/PaperMoonCore/Sources/PaperMoonCore/World/PaperMoonWorld.swift")
+    if "searchSpots:" not in world_source:
+        problems.append("PaperMoonWorld가 탐색 지점을 세계에 넣지 않는다")
+
+    # 퍼즐 난이도: 종이접기 풀림과 빛 투과 흐림
+    if "currentDesign" not in read_text("Packages/PaperMoonCore/Sources/PaperMoonCore/MiniGame.swift"):
+        problems.append("MiniGame.swift에 종이접기 연쇄 상태가 없다")
+    if "lightReadout" not in read_text("Packages/PaperMoonCore/Sources/PaperMoonCore/LightReadout.swift"):
+        problems.append("LightReadout에 정렬 판정이 없다")
+    if "resetText" not in read_text("Packages/PaperMoonCore/Sources/PaperMoonCore/Model.swift"):
+        problems.append("Puzzle에 잘못 접었을 때의 문장(resetText)이 없다")
+
+    overlay = read_text("App/Views/PuzzleOverlay.swift")
+    for needle in ["onFold", "folded", "lightReadout", "blur(radius"]:
+        if needle not in overlay:
+            problems.append(f"PuzzleOverlay에 '{needle}' 난이도 UI가 없다")
+
+    game_view = read_text("App/Views/GameView.swift")
+    for needle in ["searchButton", "store.search(", "searchFlash"]:
+        if needle not in game_view:
+            problems.append(f"GameView에 탐색 '{needle}' 배선이 없다")
+
+    # 엔딩 뒤 놀이방
+    playroom = read_text("App/Views/PlayroomView.swift")
+    for needle in ["struct MemoryDrawerBoard", "struct OrigamiChallengeBoard",
+                   "recordMemoryResult", "recordChallengeResult", "StarRow"]:
+        if needle not in playroom:
+            problems.append(f"PlayroomView에 '{needle}'가 없다")
+    root = read_text("App/Views/RootView.swift")
+    for needle in ["case .playroom", "PlayroomView(store:", "openPlayroom"]:
+        if needle not in root:
+            problems.append(f"RootView에 놀이방 진입 '{needle}'가 없다")
+
+    balance_tests = read_text(
+        "Packages/PaperMoonCore/Tests/PaperMoonCoreTests/BalanceAndMiniGameTests.swift"
+    )
+    for needle in ["SearchTests", "FoldPenaltyTests", "LightReadoutTests",
+                   "MemoryDrawerTests", "OrigamiChallengeTests", "PlayroomTests"]:
+        if needle not in balance_tests:
+            problems.append(f"난이도·놀이방 테스트 '{needle}'가 없다")
+
     return problems
 
 
 def check_readme_features() -> list[str]:
     problems: list[str] = []
     text = read_text("README.md")
-    for needle in ["종이접기", "빛 투과", "피코", "스크랩북", "먼지", "지하실", "4,900", "StoreKit"]:
+    for needle in ["종이접기", "빛 투과", "피코", "스크랩북", "먼지", "지하실", "4,900", "StoreKit",
+                   "더듬는 탐색", "천장", "놀이방", "기억의 서랍", "종이접기 연쇄", "접힘이 전부 풀려", "흐릿"]:
         if needle not in text:
             problems.append(f"README에 '{needle}' 설명이 없다")
     return problems

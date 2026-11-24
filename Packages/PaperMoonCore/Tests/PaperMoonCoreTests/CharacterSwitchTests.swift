@@ -49,7 +49,7 @@ final class CharacterSwitchTests: XCTestCase {
             stage: .attic,
             character: .pico
         )
-        let events = engine.tap(.highShelf)
+        let events = engine.search("attic.highShelf")
         XCTAssertTrue(TestHelp.hasLine(events, containing: "높다"))
         XCTAssertFalse(engine.state.inventory.contains(.paperSheet))
         XCTAssertTrue(engine.state.flags.isEmpty)
@@ -57,7 +57,7 @@ final class CharacterSwitchTests: XCTestCase {
 
     func testMomoReachesHighShelf() {
         let engine = TestHelp.engine(at: .atticLanding, stage: .attic)
-        let events = engine.tap(.highShelf)
+        let events = TestHelp.searchUntilFound(engine, "attic.highShelf")
         XCTAssertTrue(TestHelp.hasItemAdded(events, .paperSheet))
         XCTAssertTrue(engine.state.flags.contains(Flags.paperSheetTaken))
     }
@@ -68,14 +68,14 @@ final class CharacterSwitchTests: XCTestCase {
             stage: .attic,
             character: .pico
         )
-        let events = engine.tap(.mouseHole)
+        let events = TestHelp.searchUntilFound(engine, "attic.mouseHole")
         XCTAssertTrue(TestHelp.hasItemAdded(events, .candleStub))
         XCTAssertTrue(engine.state.flags.contains(Flags.candleStubTaken))
     }
 
     func testMomoCannotFitIntoMouseHole() {
         let engine = TestHelp.engine(at: .atticToyCloset, stage: .attic)
-        let events = engine.tap(.mouseHole)
+        let events = engine.search("attic.mouseHole")
         XCTAssertTrue(TestHelp.hasLine(events, containing: "좁다"))
         XCTAssertFalse(engine.state.inventory.contains(.candleStub))
     }
@@ -100,10 +100,11 @@ final class CharacterSwitchTests: XCTestCase {
             stage: .greenhouse,
             character: .pico
         )
-        XCTAssertTrue(TestHelp.hasItemAdded(picoEngine.tap(.fireflies), .firefly))
+        let found = TestHelp.searchUntilFound(picoEngine, "greenhouse.firefly")
+        XCTAssertTrue(TestHelp.hasItemAdded(found, .firefly))
 
         let momoEngine = TestHelp.engine(at: .greenhousePond, stage: .greenhouse)
-        let events = momoEngine.tap(.fireflies)
+        let events = momoEngine.search("greenhouse.firefly")
         XCTAssertTrue(TestHelp.hasLine(events, containing: "피코"))
         XCTAssertFalse(momoEngine.state.inventory.contains(.firefly))
     }

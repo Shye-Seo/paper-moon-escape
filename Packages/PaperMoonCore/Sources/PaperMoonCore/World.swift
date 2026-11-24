@@ -13,6 +13,8 @@ public struct World: Sendable {
     public let collectibles: [Collectible]
     /// 문질러 닦으면 단서가 드러나는 거울·유리·명판.
     public let dustPanels: [DustPanel]
+    /// 꼼꼼히 더듬어야 나오는 자리. 확률과 천장을 함께 갖는다.
+    public let searchSpots: [SearchSpot]
     /// 종이학을 다 모았을 때 열리는 서랍의 내용물.
     public let secretGift: SecretGift
 
@@ -26,6 +28,7 @@ public struct World: Sendable {
         hints: [Hint],
         collectibles: [Collectible] = [],
         dustPanels: [DustPanel] = [],
+        searchSpots: [SearchSpot] = [],
         secretGift: SecretGift = .paperMoon
     ) {
         self.stages = stages
@@ -37,6 +40,7 @@ public struct World: Sendable {
         self.hints = hints
         self.collectibles = collectibles
         self.dustPanels = dustPanels
+        self.searchSpots = searchSpots
         self.secretGift = secretGift
     }
 
@@ -102,6 +106,30 @@ public struct World: Sendable {
         combos.first { $0.matches(first, second) }
     }
 
+    // MARK: 탐색 지점
+
+    public func searchSpot(_ id: String) -> SearchSpot? {
+        searchSpots.first { $0.id == id }
+    }
+
+    public func searchSpots(in room: RoomID) -> [SearchSpot] {
+        searchSpots.filter { $0.room == room }
+    }
+
+    public func searchSpots(in stage: StageID) -> [SearchSpot] {
+        let roomIDs = Set(rooms.filter { $0.stage == stage }.map { $0.id })
+        return searchSpots.filter { roomIDs.contains($0.room) }
+    }
+
+    /// 탐색으로만 얻는 수집품. 화면에 반짝이로 그리지 않고, 방을 더듬어야 나온다.
+    public var searchOnlyCollectibles: Set<CollectibleID> {
+        Set(searchSpots.compactMap { $0.rewardCollectible })
+    }
+
+    public func isSearchOnly(_ id: CollectibleID) -> Bool {
+        searchOnlyCollectibles.contains(id)
+    }
+
     public func itemName(_ id: ItemID) -> String {
         item(id)?.name ?? id.rawValue
     }
@@ -158,6 +186,9 @@ public struct World: Sendable {
                 if case .give(let item) = effect { pool.insert(item) }
             }
         }
+        for spot in searchSpots(in: stage) {
+            if let item = spot.rewardItem { pool.insert(item) }
+        }
         var grew = true
         while grew {
             grew = false
@@ -185,6 +216,7 @@ public struct World: Sendable {
             for reaction in hotspot.itemReactions { collect(reaction.effects) }
         }
         for puzzle in puzzles(in: stage) { collect(puzzle.rewards) }
+        for spot in searchSpots(in: stage) { flags.formUnion(spot.flags) }
         return flags
     }
 
@@ -349,6 +381,67 @@ public struct World: Sendable {
             }
             if hint.levelOne == hint.levelTwo {
                 problems.append("힌트 \(hint.id)의 두 단계가 같다")
+            }
+        }
+
+        var seenSearches = Set<String>()
+        var searchRewards = Set<ItemID>()
+        for spot in searchSpots {
+            if !seenSearches.insert(spot.id).inserted {
+                problems.append("탐색 지점 id 중복: \(spot.id)")
+            }
+            if room(spot.room) == nil {
+                problems.append("탐색 지점 \(spot.id)의 방이 없다")
+            }
+            if spot.position.x < 0 || spot.position.x > 1
+                || spot.position.y < 0 || spot.position.y > 1 {
+                problems.append("탐색 지점 \(spot.id) 좌표가 화면 밖이다")
+            }
+            if spot.odds.isEmpty {
+                problems.append("탐색 지점 \(spot.id)에 확률표가 없다")
+            }
+            if let last = spot.odds.last, last != 1.0 {
+                problems.append("탐색 지점 \(spot.id)의 마지막 확률이 1.0이 아니다(천장 없음)")
+            }
+            for odd in spot.odds where odd <= 0 || odd > 1 {
+                problems.append("탐색 지점 \(spot.id)의 확률이 0~1 밖이다: \(odd)")
+            }
+            if spot.maxAttempts > 6 {
+                problems.append("탐색 지점 \(spot.id)의 천장이 \(spot.maxAttempts)번으로 너무 길다")
+            }
+            if spot.observations.isEmpty {
+                problems.append("탐색 지점 \(spot.id)에 관찰 문장이 없다")
+            }
+            if spot.foundText.isEmpty {
+                problems.append("탐색 지점 \(spot.id)에 발견 문장이 없다")
+            }
+            if spot.repeatText.isEmpty {
+                problems.append("탐색 지점 \(spot.id)에 반복 문장이 없다")
+            }
+            if spot.requiredCharacter != nil && spot.characterNote == nil {
+                problems.append("탐색 지점 \(spot.id)에 캐릭터 안내가 없다")
+            }
+            switch spot.reward {
+            case .item(let item):
+                if self.item(item) == nil {
+                    problems.append("탐색 지점 \(spot.id)가 없는 아이템을 준다")
+                }
+                if !searchRewards.insert(item).inserted {
+                    problems.append("아이템 \(item.rawValue)을(를) 두 탐색 지점이 함께 준다")
+                }
+                let givenByHotspot = hotspots.contains { hotspot in
+                    hotspot.effects.contains(.give(item))
+                        || hotspot.itemReactions.contains { reaction in
+                            reaction.effects.contains(.give(item))
+                        }
+                }
+                if givenByHotspot {
+                    problems.append("탐색 지점 \(spot.id)의 아이템 \(item.rawValue)을(를) 지점도 직접 준다")
+                }
+            case .collectible(let collectible):
+                if self.collectible(collectible) == nil {
+                    problems.append("탐색 지점 \(spot.id)가 없는 수집품을 준다")
+                }
             }
         }
 

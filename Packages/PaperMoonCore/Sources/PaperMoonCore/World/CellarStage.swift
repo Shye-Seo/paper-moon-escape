@@ -64,7 +64,8 @@ enum CellarStage {
             .react(.momo, "⛵"),
             .say(.narration("접은 종이배를 손바닥에 올렸다. 물에 띄우면 열쇠를 건질 수 있겠다."))
         ],
-        goal: "종이배"
+        goal: "종이배",
+        resetText: "양피지가 접힌 자리에서 탁 풀려 다시 한 장이 되었다. 첫 접기부터 다시 해야 한다."
     )
 
     /// 포도주 라벨의 찢긴 종이를 맞추고 기름등잔 빛으로 금고 암호를 읽는다.
@@ -110,21 +111,6 @@ enum CellarStage {
                 .give(.oilLamp)
             ],
             repeatText: "벽 고리만 덩그러니 남아 있다."
-        ),
-        Hotspot(
-            id: .brickNook,
-            room: .cellarSteps,
-            label: "벽돌 틈",
-            glyph: "🧱",
-            position: ScenePoint(0.12, 0.80),
-            requiredCharacter: .pico,
-            characterNote: "벽돌 틈이 손가락 하나만큼 벌어져 있다. 피코라면 앞발을 넣을 수 있겠다.",
-            effects: [
-                .react(.pico, "🔩"),
-                .say(.pico("틈 안에 쇠가 하나 끼어 있어. 녹슨 손잡이야! 철문에 끼우면 될 것 같아.")),
-                .give(.rustyHandle)
-            ],
-            repeatText: "벽돌 틈은 이제 텅 비어 있다."
         ),
         Hotspot(
             id: .ironGateLatch,
@@ -317,13 +303,33 @@ enum CellarStage {
         )
     ]
 
+    static let searchSpots: [SearchSpot] = [
+        SearchSpot(
+            id: "cellar.brickNook",
+            room: .cellarSteps,
+            label: "벽돌 틈",
+            glyph: "🧱",
+            position: ScenePoint(0.12, 0.80),
+            requiredCharacter: .pico,
+            characterNote: "벽돌 틈이 손가락 하나만큼 벌어져 있다. 피코라면 앞발을 넣을 수 있겠다.",
+            odds: [0.40, 0.70, 1.0],
+            observations: [
+                "벽돌 틈은 손가락 하나만큼 벌어져 있다. 앞발을 넣어도 먼지와 서늘한 이끼만 묻는다.",
+                "틈 안쪽에 쇠 냄새가 난다. 손목을 비틀면 닿을 것 같다."
+            ],
+            foundText: "틈 안에 끼어 있던 녹슨 손잡이를 뺐다. 철문 손잡이 자리에 맞을 것 같다.",
+            reward: .item(.rustyHandle),
+            repeatText: "벽돌 틈은 이제 텅 비어 있다."
+        )
+    ]
+
     static let hints: [Hint] = [
         Hint(
             id: "cellar.progress.1",
             stage: .cellar,
             doneIf: .flag(Flags.cellarGateOpen),
             levelOne: "철문 손잡이가 통째로 빠져 있다. 안쪽에 끼울 쇠가 어딘가에 있을 것이다.",
-            levelTwo: "피코로 바꿔 지하실 계단 왼쪽 아래의 벽돌 틈을 눌러 녹슨 손잡이를 꺼내고, 철문 손잡이 자리에 끼우자."
+            levelTwo: "피코로 바꿔 지하실 계단 왼쪽 아래의 벽돌 틈을 여러 번 더듬어 녹슨 손잡이를 꺼내고, 철문 손잡이 자리에 끼우자."
         ),
         Hint(
             id: "cellar.progress.2",

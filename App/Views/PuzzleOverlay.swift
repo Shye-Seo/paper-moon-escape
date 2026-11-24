@@ -123,8 +123,13 @@ struct PuzzlePromptCard: View {
 struct PuzzleOverlay: View {
     let puzzle: Puzzle
     let misses: Int
+    /// 종이접기에서 지금까지 접은 순서. 엔진이 갖고 있는 값을 그대로 그린다.
+    let folded: [Int]
     @ObservedObject var motion: MotionManager
     let onSubmit: ([Int]) -> Void
+    /// 종이를 한 번 접는다. 틀리면 엔진이 접힘을 전부 푼다.
+    let onFold: (Int) -> Void
+    let onResetFold: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -135,7 +140,14 @@ struct PuzzleOverlay: View {
 
             switch puzzle.kind {
             case .origami:
-                OrigamiBoard(puzzle: puzzle, misses: misses, onSubmit: onSubmit, onClose: onClose)
+                OrigamiBoard(
+                    puzzle: puzzle,
+                    misses: misses,
+                    folded: folded,
+                    onFold: onFold,
+                    onResetFold: onResetFold,
+                    onClose: onClose
+                )
             case .lightReveal:
                 LightRevealBoard(
                     puzzle: puzzle,
@@ -357,33 +369,38 @@ struct ClassicPuzzleBoard: View {
 }
 
 /// 종이접기 퍼즐. 화면의 종이를 쓸어 접거나, 접기 단추를 순서대로 누른다.
-/// 쓸기 방향은 위(귀 모으기) · 아래(아래로 접기) · 왼쪽(가운데 누르기) · 오른쪽(달 모양 펴기).
+/// 쓸기 방향은 위(귀 모으기) · 아래(아래로 접기) · 왼쪽(가운데 누르기) · 오른쪽(모양 펴기).
+///
+/// 한 번 접을 때마다 엔진이 도안과 대조한다. 순서가 틀리면 **접힘이 전부 풀리고**
+/// 첫 접기부터 다시 해야 한다. 그래서 확인 단추 없이, 접는 순간이 곧 판정이다.
 struct OrigamiBoard: View {
     let puzzle: Puzzle
     let misses: Int
-    let onSubmit: ([Int]) -> Void
+    let folded: [Int]
+    let onFold: (Int) -> Void
+    let onResetFold: () -> Void
     let onClose: () -> Void
 
-    @State private var steps: [Int] = []
-    @State private var foldTurn: Double = 0
-
-    private var canSubmit: Bool {
-        steps.count == puzzle.solution.count
-    }
-
     private var paperSize: CGFloat { 190 }
+
+    /// 지금까지 접힌 만큼 종이가 기운다.
+    private var foldTurn: Double { Double(folded.count) * 45 }
+
+    private var remaining: Int { max(0, puzzle.solution.count - folded.count) }
 
     var body: some View {
         VStack(spacing: 12) {
             PuzzleHeader(glyph: "🪷", title: puzzle.title, onClose: onClose)
             PuzzlePromptCard(prompt: puzzle.prompt, clue: puzzle.clue)
             paper
+            progressRow
             stepList
             folds
             if misses > 0 {
-                Text("접힌 자리가 어긋났다. 순서를 다시 보자.")
-                    .font(.cozy(12, weight: .semibold))
-                    .foregroundStyle(Palette.rose)
+                Text("잘못 접으면 접힌 자리가 모두 풀린다. 지금까지 \(misses)번 풀렸다.")
+                    .font(.cozy(11.5, weight: .semibold))
+                    .foregroundStyle(Palette.roseDeep)
+                    .multilineTextAlignment(.center)
             }
             footer
         }
@@ -416,12 +433,12 @@ struct OrigamiBoard: View {
                 .frame(width: paperSize * 0.7, height: paperSize * 0.7)
                 .rotationEffect(.degrees(foldTurn))
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous).size(width: paperSize, height: paperSize))
-                .offset(y: foldTurn == 0 ? 0 : 6)
+                .offset(y: folded.isEmpty ? 0 : 6)
 
             VStack(spacing: 2) {
                 Text(verbatim: "🌙")
                     .font(.system(size: 40))
-                    .opacity(steps.isEmpty ? 0.25 : 0.9)
+                    .opacity(folded.isEmpty ? 0.25 : 0.9)
                 Text(verbatim: goalText)
                     .font(.cozy(11, weight: .semibold))
                     .foregroundStyle(Palette.lineSoft)
@@ -435,9 +452,9 @@ struct OrigamiBoard: View {
                     let dx = value.translation.width
                     let dy = value.translation.height
                     if abs(dx) > abs(dy) {
-                        append(index(matching: dx < 0 ? "가운데" : "펴"))
+                        fold(index(matching: dx < 0 ? "가운데" : "펴"))
                     } else {
-                        append(index(matching: dy < 0 ? "귀" : "아래"))
+                        fold(index(matching: dy < 0 ? "귀" : "아래"))
                     }
                 }
         )
@@ -451,10 +468,24 @@ struct OrigamiBoard: View {
 
     // MARK: 접은 순서
 
+    private var progressRow: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "hand.point.up.left.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Palette.lineSoft)
+            Text(folded.isEmpty
+                 ? "첫 접기를 고르면 종이가 움직인다"
+                 : "지금 \(folded.count)번 접었다. \(remaining)번 남았다.")
+                .font(.cozy(11, weight: .semibold))
+                .foregroundStyle(Palette.lineSoft)
+            Spacer(minLength: 0)
+        }
+    }
+
     private var stepList: some View {
         HStack(spacing: 6) {
             ForEach(0..<puzzle.solution.count, id: \.self) { index in
-                let value = index < steps.count ? steps[index] : nil
+                let value = index < folded.count ? folded[index] : nil
                 let token = value.flatMap { stepsValue in puzzle.tokens.first { $0.value == stepsValue } }
                 VStack(spacing: 2) {
                     ZStack {
@@ -490,7 +521,7 @@ struct OrigamiBoard: View {
             HStack(spacing: 8) {
                 ForEach(puzzle.tokens, id: \.value) { token in
                     Button {
-                        append(token.value)
+                        fold(token.value)
                     } label: {
                         VStack(spacing: 3) {
                             Text(verbatim: token.symbol)
@@ -511,7 +542,9 @@ struct OrigamiBoard: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .disabled(remaining == 0)
                     .accessibilityLabel(Text(verbatim: token.label))
+                    .accessibilityHint(Text(verbatim: "이 순서로 접으면 종이가 접힌다. 틀리면 처음부터"))
                 }
             }
         }
@@ -519,12 +552,12 @@ struct OrigamiBoard: View {
 
     private var footer: some View {
         HStack(spacing: 10) {
-            Button("펼치기", action: reset)
+            Button("펼치기", action: onResetFold)
                 .buttonStyle(CozyButtonStyle(fill: Palette.cream))
             Spacer()
-            Button("확인", action: submit)
-                .buttonStyle(CozyButtonStyle(fill: canSubmit ? Palette.butter : Palette.cloud))
-                .disabled(!canSubmit)
+            Text(remaining == 0 ? "마지막 접기다" : "\(remaining)번 남음")
+                .font(.cozy(11, weight: .semibold))
+                .foregroundStyle(Palette.lineSoft)
         }
     }
 
@@ -532,24 +565,9 @@ struct OrigamiBoard: View {
         puzzle.tokens.first { $0.label.contains(needle) }?.value
     }
 
-    private func append(_ value: Int?) {
-        guard let value, steps.count < puzzle.solution.count else { return }
-        steps.append(value)
-        withAnimation(.easeInOut(duration: 0.35)) {
-            foldTurn += 45
-        }
-    }
-
-    private func reset() {
-        steps = []
-        withAnimation(.easeInOut(duration: 0.2)) {
-            foldTurn = 0
-        }
-    }
-
-    private func submit() {
-        guard canSubmit else { return }
-        onSubmit(steps)
+    private func fold(_ value: Int?) {
+        guard let value, remaining > 0 else { return }
+        onFold(value)
     }
 }
 
@@ -673,6 +691,7 @@ struct LightRevealBoard: View {
         let value = index < slots.count ? slots[index] : nil
         let token = value.flatMap { placed in puzzle.tokens.first { $0.value == placed } }
         let label = index < puzzle.slotLabels.count ? puzzle.slotLabels[index] : "\(index + 1)"
+        let isRight = value != nil && index < puzzle.solution.count && value == puzzle.solution[index]
 
         return Button {
             tapSlot(index)
@@ -684,7 +703,9 @@ struct LightRevealBoard: View {
                         .frame(width: 78, height: 62)
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(
-                            Palette.lineSoft.opacity(0.55),
+                            token == nil
+                                ? Palette.lineSoft.opacity(0.55)
+                                : (isRight ? Palette.sage : Palette.roseDeep.opacity(0.9)),
                             style: StrokeStyle(lineWidth: 1.1, dash: token == nil ? [5, 4] : [])
                         )
                         .frame(width: 78, height: 62)
@@ -702,22 +723,33 @@ struct LightRevealBoard: View {
     }
 
     private var revealedCode: some View {
-        VStack(spacing: 4) {
-            Text("숨은 글씨")
+        let readout = self.readout
+        return VStack(spacing: 4) {
+            Text(readout.isCrisp ? "숨은 글씨" : "숨은 글씨 · 아직 흐릿하다")
                 .font(.cozy(10, weight: .semibold))
                 .foregroundStyle(Palette.lineSoft)
-            Text(verbatim: puzzle.revealedCode ?? "빛이 종이를 통과해 글씨를 비췄다.")
+            Text(verbatim: readout.partialCode)
                 .font(.cozy(15, weight: .bold))
                 .foregroundStyle(Palette.line)
                 .multilineTextAlignment(.center)
+                .blur(radius: readout.isCrisp ? 0 : CGFloat(readout.blurRadius))
                 .padding(.horizontal, 12)
+            Text(verbatim: readout.isCrisp ? "조각이 모두 제자리에 있다" : readout.clarityText)
+                .font(.cozy(10, weight: .semibold))
+                .foregroundStyle(readout.isCrisp ? Palette.lineSoft : Palette.roseDeep)
         }
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Palette.butter.opacity(0.55))
+                .fill(Palette.butter.opacity(readout.isCrisp ? 0.55 : 0.35))
         )
         .padding(.horizontal, 16)
+    }
+
+    /// 지금 놓인 조각이 만드는 또렷함. 한 칸이라도 어긋나면 글씨가 번진다.
+    /// 빈 칸은 -1로 채워 칸 순서가 밀리지 않게 한다.
+    private var readout: LightReadout {
+        puzzle.lightReadout(for: slots.map { $0 ?? -1 })
     }
 
     // MARK: 조각 고르기
@@ -797,14 +829,20 @@ struct LightRevealBoard: View {
             Button("흩뜨리기", action: reset)
                 .buttonStyle(CozyButtonStyle(fill: Palette.cream))
             Spacer()
+            Text(canSubmit ? "조각이 맞았다" : "조각을 정확히 맞춰야 읽힌다")
+                .font(.cozy(10.5, weight: .semibold))
+                .foregroundStyle(canSubmit ? Palette.lineSoft : Palette.lineSoft.opacity(0.75))
+                .lineLimit(2)
+                .multilineTextAlignment(.trailing)
             Button("확인", action: submit)
                 .buttonStyle(CozyButtonStyle(fill: canSubmit ? Palette.butter : Palette.cloud))
                 .disabled(!canSubmit)
         }
     }
 
+    /// 모든 칸이 차고 빛을 비추며 조각이 **정확히** 맞아야 확인할 수 있다.
     private var canSubmit: Bool {
-        allFilled && lit
+        allFilled && lit && readout.isCrisp
     }
 
     private func tapSlot(_ index: Int) {

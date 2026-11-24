@@ -203,33 +203,6 @@ enum GreenhouseStage {
             repeatText: "개구리들이 만족스럽게 눈을 감고 작게 울었다."
         ),
         Hotspot(
-            id: .pondShelf,
-            room: .greenhousePond,
-            label: "연못가 선반",
-            glyph: "🫙",
-            position: ScenePoint(0.74, 0.68),
-            effects: [
-                .say(.narration("선반 위에 맑은 유리병이 하나 놓여 있었다. 뚜껑이 딸려 있다.")),
-                .give(.emptyJar)
-            ],
-            repeatText: "선반에는 병이 놓여 있던 자국만 남아 있다."
-        ),
-        Hotspot(
-            id: .fireflies,
-            room: .greenhousePond,
-            label: "반딧불이 떼",
-            glyph: "✨",
-            position: ScenePoint(0.62, 0.28),
-            requiredCharacter: .pico,
-            characterNote: "반딧불이는 겁이 많아 큰 손을 피한다. 앞발이 작은 피코라면 조심히 잡을 수 있겠다.",
-            effects: [
-                .react(.pico, "🤲"),
-                .say(.pico("반딧불이가 손끝에 앉았어! 따뜻해... 병에 담아 두면 길이 밝아지겠다.")),
-                .give(.firefly)
-            ],
-            repeatText: "반딧불이들이 손끝을 맴돌다 흩어진다."
-        ),
-        Hotspot(
             id: .stoneSteps,
             room: .greenhousePond,
             label: "물빛 돌",
@@ -325,6 +298,60 @@ enum GreenhouseStage {
         )
     ]
 
+    static let searchSpots: [SearchSpot] = [
+        SearchSpot(
+            id: "greenhouse.pondShelf",
+            room: .greenhousePond,
+            label: "연못가 선반",
+            glyph: "🫙",
+            position: ScenePoint(0.74, 0.68),
+            odds: [0.40, 0.70, 1.0],
+            observations: [
+                "선반에 병이 가지런히 놓여 있다. 하나씩 들어 보지만 모두 바닥이 깨져 비어 있다.",
+                "선반 뒤쪽에 손이 들어가는 틈이 있다. 무언가 딸그락 소리를 낸다."
+            ],
+            foundText: "선반 뒤에서 뚜껑이 딸린 맑은 유리병을 꺼냈다. 흔들어 보니 안이 비어 있다.",
+            reward: .item(.emptyJar),
+            repeatText: "선반에는 병이 놓여 있던 자국만 남아 있다."
+        ),
+        SearchSpot(
+            id: "greenhouse.firefly",
+            room: .greenhousePond,
+            label: "반딧불이 떼",
+            glyph: "✨",
+            position: ScenePoint(0.62, 0.28),
+            requiredCharacter: .pico,
+            characterNote: "반딧불이는 겁이 많아 큰 손을 피한다. 앞발이 작은 피코라면 조심히 잡을 수 있겠다.",
+            odds: [0.28, 0.48, 0.68, 0.86, 1.0],
+            observations: [
+                "반딧불이가 손끝을 스치고 도망간다. 조금만 움직여도 다 흩어진다.",
+                "연못 위쪽에 불빛이 모여 있다. 숨을 죽이고 기다려야 할 것 같다.",
+                "이제 한 마리가 앞발 가까이 왔다. 숨을 참으면 잡힐 것 같다.",
+                "반딧불이 한 마리가 앞발 위에서 맴돈다. 조심히 감싸 보자."
+            ],
+            foundText: "앞발을 조심히 오므로자 반딧불이 한 마리가 손안에 앉았다. 따뜻하다.",
+            reward: .item(.firefly),
+            repeatText: "반딧불이들이 손끝을 맴돌다 흩어진다."
+        ),
+        SearchSpot(
+            id: "greenhouse.fireflyCrane",
+            room: .greenhousePond,
+            label: "반딧불이 곁 풀숲",
+            glyph: "🕊",
+            position: ScenePoint(0.88, 0.12),
+            requires: [.item(.lantern)],
+            blocked: "풀숲이 어두우니 빛을 들고 와야 보일 것 같다.",
+            odds: [0.30, 0.55, 0.80, 1.0],
+            observations: [
+                "랜턴을 들이대도 풀숲이 우거져 바닥이 잘 보이지 않는다.",
+                "풀잎 사이에 종이 같은 것이 깔려 있다. 하나 더 밝은 곳을 찾아보자."
+            ],
+            foundText: "풀숲 아래에 반딧불 빛을 머금은 붓 채 놓인 종이학을 발견했다.",
+            reward: .collectible(.craneFirefly),
+            repeatText: "풀숲 아래는 이제 휑하다."
+        )
+    ]
+
     static let hints: [Hint] = [
         Hint(
             id: "greenhouse.progress.1",
@@ -350,19 +377,26 @@ enum GreenhouseStage {
         Hint(
             id: "greenhouse.progress.4",
             stage: .greenhouse,
-            doneIf: .flag(Flags.lightCodeSeen),
-            levelOne: "유리방 구석의 찢어진 종이가 눈에 밟힌다. 피코의 작은 발끝이면 조각을 맞출 수 있다.",
-            levelTwo: "반딧불이 랜턴을 든 채 피코로 바꿔 '찢어진 종이창'을 누르고, 조각을 맞춘 뒤 랜턴을 비추자."
+            doneIf: .item(.lantern),
+            levelOne: "유리방은 깜깜하다. 연못가에서 빛을 만들 재료를 챙기자.",
+            levelTwo: "연못가 선반을 여러 번 더듬어 유리병을, 피코로 반딧불이 떼를 여러 번 더듬어 반딧불이를 얻은 뒤 주머니에서 둘을 합치자."
         ),
         Hint(
             id: "greenhouse.progress.5",
+            stage: .greenhouse,
+            doneIf: .flag(Flags.lightCodeSeen),
+            levelOne: "유리방 구석의 찢어진 종이가 눈에 밟힌다. 피코의 작은 발끝이면 조각을 맞출 수 있다.",
+            levelTwo: "반딧불이 랜턴을 든 채 피코로 바꿔 '찢어진 종이창'을 누르고, 조각을 정확히 맞춘 뒤 랜턴을 비추자."
+        ),
+        Hint(
+            id: "greenhouse.progress.6",
             stage: .greenhouse,
             doneIf: .flag(Flags.shardFound),
             levelOne: "숨은 글씨가 가리킨 자리를 다시 떠올려 보자. 나뭇가지 끝이다.",
             levelTwo: "유리방의 거꾸로 매달린 나뭇가지 끝, 종이달 조각을 눌러 챙기자."
         ),
         Hint(
-            id: "greenhouse.progress.6",
+            id: "greenhouse.progress.7",
             stage: .greenhouse,
             doneIf: .cleared(.greenhouse),
             levelOne: "손에 종이달 조각이 있다면, 이제 덩굴 문으로 갈 차례다.",

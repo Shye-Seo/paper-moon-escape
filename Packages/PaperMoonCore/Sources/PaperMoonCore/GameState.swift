@@ -78,6 +78,17 @@ public struct GameState: Codable, Equatable, Sendable {
     /// 종이학 열두 마리를 모아 연 비밀 서랍을 이미 열었는지.
     public var secretDrawerOpened: Bool
 
+    // MARK: 탐색과 접기
+
+    /// 탐색 지점마다 실패한 횟수. 천장(마지막 확률 1.0)은 `SearchSpot`이 갖고 있다.
+    public var searchTries: [String: Int]
+    /// 이미 찾아낸 탐색 지점.
+    public var foundSearches: Set<String>
+    /// 종이접기 퍼즐의 지금까지 접은 순서. 잘못 접으면 비운다.
+    public var foldProgress: [String: [Int]]
+    /// 엔딩 뒤 놀이방의 난이도별 최고 기록.
+    public var miniGames: MiniGameRecords
+
     public init(
         stage: StageID = .attic,
         room: RoomID = .atticLanding,
@@ -96,7 +107,11 @@ public struct GameState: Codable, Equatable, Sendable {
         clearedStages: Set<StageID> = [],
         activeCharacter: PlayableCharacter = .momo,
         collected: Set<CollectibleID> = [],
-        secretDrawerOpened: Bool = false
+        secretDrawerOpened: Bool = false,
+        searchTries: [String: Int] = [:],
+        foundSearches: Set<String> = [],
+        foldProgress: [String: [Int]] = [:],
+        miniGames: MiniGameRecords = MiniGameRecords()
     ) {
         self.stage = stage
         self.room = room
@@ -116,6 +131,10 @@ public struct GameState: Codable, Equatable, Sendable {
         self.activeCharacter = activeCharacter
         self.collected = collected
         self.secretDrawerOpened = secretDrawerOpened
+        self.searchTries = searchTries
+        self.foundSearches = foundSearches
+        self.foldProgress = foldProgress
+        self.miniGames = miniGames
     }
 
     // MARK: 저장 호환
@@ -125,6 +144,7 @@ public struct GameState: Codable, Equatable, Sendable {
         case hintLevels, puzzleAttempts, hintsUsed, craftedCount, selectedItem
         case startedAt, finishedAt, finished, clearedStages
         case activeCharacter, collected, secretDrawerOpened
+        case searchTries, foundSearches, foldProgress, miniGames
     }
 
     /// 예전 저장 파일에는 없던 칸이 있으므로, 빠진 값은 기본값으로 채운다.
@@ -151,6 +171,11 @@ public struct GameState: Codable, Equatable, Sendable {
             ?? .momo
         collected = try container.decodeIfPresent(Set<CollectibleID>.self, forKey: .collected) ?? []
         secretDrawerOpened = try container.decodeIfPresent(Bool.self, forKey: .secretDrawerOpened) ?? false
+        searchTries = try container.decodeIfPresent([String: Int].self, forKey: .searchTries) ?? [:]
+        foundSearches = try container.decodeIfPresent(Set<String>.self, forKey: .foundSearches) ?? []
+        foldProgress = try container.decodeIfPresent([String: [Int]].self, forKey: .foldProgress) ?? [:]
+        miniGames = try container.decodeIfPresent(MiniGameRecords.self, forKey: .miniGames)
+            ?? MiniGameRecords()
     }
 
     public static func newGame(at date: Date) -> GameState {
@@ -184,6 +209,18 @@ public struct GameState: Codable, Equatable, Sendable {
 
     public func hintLevel(for id: String) -> Int {
         hintLevels[id] ?? 0
+    }
+
+    public func searchTries(for spot: String) -> Int {
+        searchTries[spot] ?? 0
+    }
+
+    public func hasFound(_ spot: String) -> Bool {
+        foundSearches.contains(spot)
+    }
+
+    public func foldSteps(for puzzle: PuzzleID) -> [Int] {
+        foldProgress[puzzle.rawValue] ?? []
     }
 
     public func elapsedSeconds(now: Date) -> Double {
@@ -280,4 +317,14 @@ public enum GameEvent: Equatable, Sendable {
     case purchaseRequired(StoreProduct, String)
     /// 보너스 장면을 끝냈다.
     case bonusEnding(StageID, GameSummary)
+    /// 탐색이 빗나갔다. `attempt`번째 시도였고 `ceiling`번 안에는 반드시 찾는다.
+    case searchMissed(String, attempt: Int, ceiling: Int)
+    /// 탐색으로 무언가를 찾아냈다.
+    case searchFound(String)
+    /// 종이를 한 번 접었다. `position`은 지금까지 접은 횟수.
+    case foldAccepted(PuzzleID, position: Int)
+    /// 잘못 접혀 접힘이 풀렸다. `attempts`는 이 퍼즐의 누적 실수.
+    case foldUnfolded(PuzzleID, attempts: Int)
+    /// 손으로 종이를 펼쳐 접은 순서를 비웠다.
+    case foldCleared(PuzzleID)
 }

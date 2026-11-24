@@ -35,6 +35,10 @@ public enum PaperMoonWorld {
                 + CellarStage.hints,
             collectibles: ScrapbookCatalog.all,
             dustPanels: DustCatalog.all,
+            searchSpots: AtticStage.searchSpots
+                + GreenhouseStage.searchSpots
+                + ClocktowerStage.searchSpots
+                + CellarStage.searchSpots,
             secretGift: .paperMoon
         )
     }

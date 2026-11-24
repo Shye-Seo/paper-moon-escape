@@ -39,6 +39,35 @@ enum TestHelp {
         }
     }
 
+    static func hasSearchFound(_ events: [GameEvent], _ id: String) -> Bool {
+        events.contains { event in
+            if case .searchFound(let found) = event { return found == id }
+            return false
+        }
+    }
+
+    static func hasSearchMissed(_ events: [GameEvent]) -> Bool {
+        events.contains { event in
+            if case .searchMissed = event { return true }
+            return false
+        }
+    }
+
+    /// 천장까지 더듬어 반드시 찾아낸다. 마지막 이벤트 묶음을 돌려준다.
+    @discardableResult
+    static func searchUntilFound(
+        _ engine: GameEngine,
+        _ id: String,
+        limit: Int = 8
+    ) -> [GameEvent] {
+        var events: [GameEvent] = []
+        for _ in 0..<limit {
+            events = engine.search(id)
+            if hasSearchFound(events, id) { return events }
+        }
+        return events
+    }
+
     /// 특정 스테이지 중간에서 시작하는 엔진(이미 앞 스테이지는 깬 상태).
     static func engine(
         at room: RoomID,
@@ -51,7 +80,8 @@ enum TestHelp {
         collected: Set<CollectibleID> = [],
         entitlements: Entitlements = .full,
         store: SaveStore? = nil,
-        now: @escaping () -> Date = { Date(timeIntervalSince1970: 1_700_000_000) }
+        now: @escaping () -> Date = { Date(timeIntervalSince1970: 1_700_000_000) },
+        random: @escaping () -> Double = { Double.random(in: 0..<1) }
     ) -> GameEngine {
         let state = GameState(
             stage: stage,
@@ -69,7 +99,8 @@ enum TestHelp {
             state: state,
             store: store,
             entitlements: entitlements,
-            clock: now
+            clock: now,
+            random: random
         )
     }
 }

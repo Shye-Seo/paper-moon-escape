@@ -124,7 +124,7 @@ final class HintPassTests: XCTestCase {
         _ = engine.requestHint()
         _ = engine.tap(.owlClock)
         _ = engine.requestHint()
-        _ = engine.tap(.highShelf)
+        TestHelp.searchUntilFound(engine, "attic.highShelf")
         _ = engine.requestHint()
     }
 

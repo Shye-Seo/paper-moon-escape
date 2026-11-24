@@ -62,7 +62,7 @@ final class HintTests: XCTestCase {
             XCTAssertNotEqual(hint.levelOne, hint.levelTwo, "힌트 \(hint.id)의 두 단계가 같다")
         }
         XCTAssertEqual(world.hints(in: .attic).count, 9)
-        XCTAssertEqual(world.hints(in: .greenhouse).count, 6)
+        XCTAssertEqual(world.hints(in: .greenhouse).count, 7)
         XCTAssertEqual(world.hints(in: .clocktower).count, 5)
         XCTAssertEqual(world.hints(in: .cellar).count, 6)
     }

@@ -77,7 +77,8 @@ enum AtticStage {
             .react(.momo, "✨"),
             .say(.narration("도면 한 장이 달 모양 등불이 되었다. 안을 들여다보니 심지를 꽂을 자리가 비어 있다."))
         ],
-        goal: "종이달 등불"
+        goal: "종이달 등불",
+        resetText: "손이 미끄러져 접힌 자리가 탁 풀렸다. 종이가 다시 반듯해졌다. 첫 접기부터 다시 해야 한다."
     )
 
     static let hotspots: [Hotspot] = [
@@ -132,22 +133,6 @@ enum AtticStage {
                 .react(.pico, "🤩"),
                 .say(.pico("종이학이 날개를 파닥이며 인사하고 창밖으로 사라졌어. 방마다 한 마리씩 숨어 있는 것 같아."))
             ]
-        ),
-        Hotspot(
-            id: .highShelf,
-            room: .atticLanding,
-            label: "높은 선반",
-            glyph: "🗄",
-            position: ScenePoint(0.90, 0.60),
-            requiredCharacter: .momo,
-            characterNote: "선반이 높다. 피코가 아무리 발끝을 세워도 닿지 않는다. 모모라면 손이 닿을 것 같다.",
-            effects: [
-                .react(.momo, "📜"),
-                .say(.narration("높은 선반 위에 먼지를 뒤집어쓴 종이 도면이 놓여 있었다. 모모가 팔을 뻗어 조심히 내려왔다.")),
-                .give(.paperSheet),
-                .flag(Flags.paperSheetTaken)
-            ],
-            repeatText: "선반 위에는 도면이 놓여 있던 먼지 자국만 남아 있다."
         ),
 
         // 장난감 창고
@@ -220,22 +205,6 @@ enum AtticStage {
             hiddenWhen: [.flag(Flags.origamiMoon)],
             repeatText: "책상 위에는 이미 달 모양 등불이 놓여 있다."
         ),
-        Hotspot(
-            id: .mouseHole,
-            room: .atticToyCloset,
-            label: "쥐구멍",
-            glyph: "🕳",
-            position: ScenePoint(0.06, 0.90),
-            requiredCharacter: .pico,
-            characterNote: "쥐구멍은 모모의 손이 들어가기엔 좁다. 피코라면 앞발을 넣어 볼 수 있겠다.",
-            effects: [
-                .react(.pico, "🕯"),
-                .say(.pico("쥐구멍 안에 뭔가 반짝여! 짧은 초가 굴러다녀. 이거면 등불에 불을 붙일 수 있겠어.")),
-                .give(.candleStub),
-                .flag(Flags.candleStubTaken)
-            ],
-            repeatText: "쥐구멍 안은 이제 깨끗하다."
-        ),
 
         // 종이달 창
         Hotspot(
@@ -298,6 +267,79 @@ enum AtticStage {
         )
     ]
 
+    static let searchSpots: [SearchSpot] = [
+        SearchSpot(
+            id: "attic.highShelf",
+            room: .atticLanding,
+            label: "높은 선반",
+            glyph: "🗄",
+            position: ScenePoint(0.90, 0.60),
+            requiredCharacter: .momo,
+            characterNote: "선반이 높다. 피코가 아무리 발끝을 세워도 닿지 않는다. 모모라면 손이 닿을 것 같다.",
+            odds: [0.45, 0.75, 1.0],
+            observations: [
+                "선반 위에 상자가 몇 개 쌓여 있고, 그 위로 먼지가 두껍다. 팔을 뻗어 더듬어 보지만 손끝에 닿는 건 상자뿐이다.",
+                "상자 사이 틈으로 바람이 새는 자리가 있다. 무언가 끼어 있는 듯하다."
+            ],
+            foundText: "상자 틈에서 먼지를 뒤집어쓴 종이 도면을 조심히 빼냈다. 접힌 자국이 아직 살아 있다.",
+            reward: .item(.paperSheet),
+            flags: [Flags.paperSheetTaken],
+            repeatText: "선반 위에는 도면이 놓여 있던 먼지 자국만 남아 있다."
+        ),
+        SearchSpot(
+            id: "attic.mouseHole",
+            room: .atticToyCloset,
+            label: "쥐구멍",
+            glyph: "🕳",
+            position: ScenePoint(0.06, 0.90),
+            requiredCharacter: .pico,
+            characterNote: "쥐구멍은 모모의 손이 들어가기엔 좁다. 피코라면 앞발을 넣어 볼 수 있겠다.",
+            odds: [0.30, 0.50, 0.70, 0.88, 1.0],
+            observations: [
+                "쥐구멍이 깜깜하다. 앞발을 넣어 휘저어 보지만 먼지와 실밥만 묻는다.",
+                "안쪽은 바깥보다 따뜻하다. 무언가 종이처럼 부스럭거린다.",
+                "꼬리 끝이 무언가 길쭉한 것에 스쳤다. 조금만 더 들어가면 닿을 것 같다.",
+                "거의 잡힐 것 같은데 굴러가 버렸다. 발톱을 더 바닥에 붙여 보자."
+            ],
+            foundText: "앞발을 깊이 넣어 짧은 초를 굴려 꺼냈다. 심지가 살아 있다.",
+            reward: .item(.candleStub),
+            flags: [Flags.candleStubTaken],
+            repeatText: "쥐구멍 안은 이제 깨끗하다."
+        ),
+        SearchSpot(
+            id: "attic.toyShelfCrane",
+            room: .atticToyCloset,
+            label: "장난감 선반 끝",
+            glyph: "🕊",
+            position: ScenePoint(0.94, 0.28),
+            odds: [0.30, 0.55, 0.80, 1.0],
+            observations: [
+                "선반 끝은 먼지로 덮여 있어 무엇이 앉아 있는지 분간이 안 된다.",
+                "먼지를 쓸어 내자 종이 냄새가 난다. 접힌 날개 같은 것이 손등을 스쳤다."
+            ],
+            foundText: "선반 끝에 먼지를 쓴 채 앉아 있던 종이학을 조심히 집어 올렸다.",
+            reward: .collectible(.craneToyShelf),
+            repeatText: "선반 끝은 거미줄만 남아 있다."
+        ),
+        SearchSpot(
+            id: "attic.curtainCrane",
+            room: .atticMoonWindow,
+            label: "커튼 주름",
+            glyph: "🕊",
+            position: ScenePoint(0.14, 0.56),
+            requires: [.flag(Flags.readCurtainNote)],
+            blocked: "커튼 주름에 무언가 끼어 있는지는 모르겠다. 커튼을 먼저 살펴보자.",
+            odds: [0.30, 0.55, 0.80, 1.0],
+            observations: [
+                "커튼 주름을 한 겸씩 들춰도 바스락거리는 소리뿐이다.",
+                "주름 사이에 바람이 고여 있다. 달빛이 비치는 자리가 한 군데 유난히 밝다."
+            ],
+            foundText: "커튼 주름 사이에 끼어 있던 종이학을 꺼냈다. 달빛에 날개가 반투명하게 빛난다.",
+            reward: .collectible(.craneMoonWindow),
+            repeatText: "커튼 주름은 이제 반듯이 펴져 있다."
+        )
+    ]
+
     static let hints: [Hint] = [
         Hint(
             id: "attic.progress.1",
@@ -318,7 +360,7 @@ enum AtticStage {
             stage: .attic,
             doneIf: .flag(Flags.paperSheetTaken),
             levelOne: "종이를 접으려면 접을 종이가 먼저 필요하다. 높은 곳을 살펴보자.",
-            levelTwo: "모모로 바꾼 뒤 계단참 오른쪽의 높은 선반을 누르면 종이 도면이 내려온다."
+            levelTwo: "모모로 바꾼 뒤 계단참 오른쪽의 높은 선반을 여러 번 더듬어 보자. 한 번에 안 나와도 세 번 안에는 상자 틈에서 도면이 나온다."
         ),
         Hint(
             id: "attic.progress.4",
@@ -332,7 +374,7 @@ enum AtticStage {
             stage: .attic,
             doneIf: .flag(Flags.candleStubTaken),
             levelOne: "등불에 불을 붙일 것이 필요하다. 작은 것은 좁은 곳에 숨어 있다.",
-            levelTwo: "피코로 바꾼 뒤 장난감 창고 구석의 쥐구멍을 눌러 짧은 초를 꺼내자."
+            levelTwo: "피코로 바꾼 뒤 장난감 창고 구석의 쥐구멍을 여러 번 더듬어 보자. 다섯 번 안에는 짧은 초가 굴러나온다."
         ),
         Hint(
             id: "attic.progress.6",

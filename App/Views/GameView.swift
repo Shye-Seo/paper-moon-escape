@@ -32,8 +32,11 @@ struct GameView: View {
                     PuzzleOverlay(
                         puzzle: puzzle,
                         misses: store.puzzleMisses,
+                        folded: store.foldSteps,
                         motion: motion,
                         onSubmit: store.submitPuzzle,
+                        onFold: store.fold,
+                        onResetFold: store.resetFolds,
                         onClose: store.closePuzzle
                     )
                     .transition(.opacity)
@@ -71,6 +74,21 @@ struct GameView: View {
                     .allowsHitTesting(false)
                     .transition(.opacity)
                 }
+
+                if let note = store.searchFlash {
+                    VStack {
+                        Spacer()
+                        Text(verbatim: note)
+                            .font(.cozy(11.5, weight: .semibold))
+                            .foregroundStyle(Palette.line)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 7)
+                            .paperCard(fill: Palette.cloud, radius: 15)
+                            .padding(.bottom, compact ? 96 : 118)
+                    }
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                }
             }
         }
         .animation(.easeInOut(duration: 0.28), value: store.hint?.id)
@@ -79,6 +97,7 @@ struct GameView: View {
         .animation(.easeInOut(duration: 0.25), value: store.bubble?.id)
         .animation(.easeInOut(duration: 0.25), value: store.dust?.id)
         .animation(.easeInOut(duration: 0.25), value: store.dustFlash)
+        .animation(.easeInOut(duration: 0.25), value: store.searchFlash)
         .onAppear {
             motion.start()
             withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
@@ -135,6 +154,10 @@ struct GameView: View {
 
                 ForEach(store.collectibles) { collectible in
                     collectibleButton(collectible, in: geo.size)
+                }
+
+                ForEach(store.searches) { spot in
+                    searchButton(spot, in: geo.size)
                 }
 
                 ForEach(store.hotspots) { hotspot in
@@ -298,6 +321,51 @@ struct GameView: View {
         )
         .accessibilityLabel(Text(verbatim: hotspot.label))
         .accessibilityHint(Text(verbatim: hotspot.requiredCharacter.map { "\($0.shortName)만 만질 수 있다" } ?? ""))
+    }
+
+    /// 꼼꼼히 더듬는 자리. 돋보기 링과 지금까지 빗나간 횟수를 함께 보여 준다.
+    private func searchButton(_ spot: SearchSpot, in size: CGSize) -> some View {
+        let tries = store.searchTries(spot)
+        let needsOtherCharacter = spot.requiredCharacter != nil
+            && spot.requiredCharacter != store.character
+
+        return Button {
+            store.search(spot)
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Palette.paper.opacity(needsOtherCharacter ? 0.7 : 0.92))
+                    .frame(width: 44, height: 44)
+                Circle()
+                    .stroke(
+                        tries > 0 ? Palette.roseDeep.opacity(0.85) : Palette.dusk.opacity(0.8),
+                        style: StrokeStyle(lineWidth: 1.2, dash: [4, 3])
+                    )
+                    .frame(width: 44, height: 44)
+
+                Text(verbatim: spot.glyph)
+                    .font(.system(size: 19))
+                    .saturation(needsOtherCharacter ? 0.35 : 1)
+
+                if tries > 0 {
+                    Text(verbatim: "\(tries)/\(spot.maxAttempts)")
+                        .font(.cozy(8.5, weight: .semibold))
+                        .foregroundStyle(Palette.cream)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Capsule().fill(Palette.roseDeep.opacity(0.9)))
+                        .offset(x: 16, y: -16)
+                }
+            }
+            .shadow(color: Palette.shadow, radius: 5, x: 0, y: 2)
+        }
+        .buttonStyle(.plain)
+        .position(
+            x: size.width * CGFloat(spot.position.x),
+            y: size.height * CGFloat(spot.position.y)
+        )
+        .accessibilityLabel(Text(verbatim: "\(spot.label) 꼼꼼히 살펴보기"))
+        .accessibilityHint(Text(verbatim: "\(spot.maxAttempts)번 안에 반드시 찾는다. 지금까지 \(tries)번 빗나갔다"))
     }
 
     private func collectibleButton(_ collectible: Collectible, in size: CGSize) -> some View {

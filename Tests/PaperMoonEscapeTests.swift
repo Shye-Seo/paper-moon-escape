@@ -4,18 +4,31 @@ import PaperMoonCore
 /// 앱 타깃 위에서 도는 통합 테스트.
 /// 실제 플레이 순서를 그대로 따라가며 "이 게임은 끝까지 갈 수 있는가"를 확인한다.
 final class PaperMoonEscapeIntegrationTests: XCTestCase {
+    /// 탐색은 한 번에 안 나올 수 있다. 천장까지 더듬어 반드시 찾는다.
+    private func search(_ engine: GameEngine, _ id: String) {
+        let ceiling = World.paperMoon.searchSpot(id)?.maxAttempts ?? 1
+        for _ in 0..<max(ceiling, 1) {
+            let events = engine.search(id)
+            let found = events.contains { event in
+                if case .searchFound(let spot) = event { return spot == id }
+                return false
+            }
+            if found { return }
+        }
+    }
+
     private func runAdventure(hints: Bool = false) -> GameEngine {
         let engine = GameEngine(world: .paperMoon)
 
         // 1장 · 다락방 — 종이접기, 캐릭터 전환, 초와 등불
         _ = engine.tap(.rockingHorse)
         _ = engine.tap(.owlClock)
-        _ = engine.tap(.highShelf)              // 모모만 닿는 높은 선반
+        search(engine, "attic.highShelf")       // 모모만 닿는 높은 선반을 더듬는다
         _ = engine.moveRight()
         _ = engine.tap(.foldingDesk)
         _ = engine.solvePuzzle(.paperMoonOrigami, answer: [0, 2, 1, 3])
         _ = engine.setCharacter(.pico)
-        _ = engine.tap(.mouseHole)              // 피코만 들어가는 쥐구멍
+        search(engine, "attic.mouseHole")       // 피코만 들어가는 쥐구멍을 더듬는다
         _ = engine.setCharacter(.momo)
         _ = engine.combine(.paperMoonLamp, .candleStub)
         _ = engine.tap(.toyBox)
@@ -30,9 +43,9 @@ final class PaperMoonEscapeIntegrationTests: XCTestCase {
         _ = engine.tap(.seedPouch)
         _ = engine.tap(.wateringCanCorner)
         _ = engine.moveRight()
-        _ = engine.tap(.pondShelf)
+        search(engine, "greenhouse.pondShelf")
         _ = engine.setCharacter(.pico)
-        _ = engine.tap(.fireflies)
+        search(engine, "greenhouse.firefly")
         _ = engine.combine(.emptyJar, .firefly)
         _ = engine.tap(.frogChorus)
         _ = engine.solvePuzzle(.frogSong, answer: [3, 1, 4, 2])
@@ -53,7 +66,7 @@ final class PaperMoonEscapeIntegrationTests: XCTestCase {
         _ = engine.moveRight()
         _ = engine.tap(.dialPanel)
         _ = engine.solvePuzzle(.gearDials, answer: [0, 1, 3])
-        _ = engine.tap(.gearPile)
+        search(engine, "tower.gearPile")
         _ = engine.combine(.windKey, .gear)
         _ = engine.tapInventoryItem(.clockPart)
         _ = engine.tap(.windSocket)
@@ -97,7 +110,7 @@ final class PaperMoonEscapeIntegrationTests: XCTestCase {
         _ = engine.start(stage: .cellar)
         _ = engine.tap(.oilLampHook)
         _ = engine.setCharacter(.pico)
-        _ = engine.tap(.brickNook)
+        search(engine, "cellar.brickNook")
         _ = engine.setCharacter(.momo)
         _ = engine.tapInventoryItem(.rustyHandle)
         _ = engine.tap(.ironGateLatch)
@@ -215,6 +228,14 @@ final class PaperMoonEscapeIntegrationTests: XCTestCase {
                 for collectible in engine.visibleCollectibles where collectible.kind == .crane {
                     _ = engine.collect(collectible.id)
                     collected.insert(collectible.id)
+                }
+                // 탐색으로만 나오는 종이학은 방을 더듬어 찾는다. 커튼은 먼저 살펴야 한다.
+                _ = engine.tap(.curtain)
+                for spot in engine.visibleSearches() {
+                    search(engine, spot.id)
+                    if let collectible = spot.rewardCollectible {
+                        collected.insert(collectible)
+                    }
                 }
                 _ = engine.moveRight()
             }
