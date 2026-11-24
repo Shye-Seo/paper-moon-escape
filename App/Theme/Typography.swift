@@ -1,8 +1,8 @@
 import SwiftUI
 
 extension Font {
-    /// 앱 전체가 쓰는 둥근 카툰 글꼴.
-    static func cartoon(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+    /// 앱 전체가 쓰는 둥근 글꼴. 목소리를 높이지 않도록 기본 두께를 살짝 낮춰 잡는다.
+    static func cozy(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
         .system(size: size, weight: weight, design: .rounded)
     }
 }
@@ -18,7 +18,7 @@ struct MoonView: View {
             let radius = min(size.width, size.height) * 0.42
             let path = Brush.moon(center: center, radius: radius, bite: bite)
             context.fill(path, with: .color(fill))
-            context.stroke(path, with: .color(Palette.ink), lineWidth: 4)
+            context.stroke(path, with: .color(Palette.lineSoft.opacity(0.55)), lineWidth: 1.4)
 
             let crater = Path(ellipseIn: CGRect(
                 x: center.x - radius * 0.30,
@@ -26,7 +26,7 @@ struct MoonView: View {
                 width: radius * 0.26,
                 height: radius * 0.26
             ))
-            context.fill(crater, with: .color(Palette.mustard.opacity(0.55)))
+            context.fill(crater, with: .color(Palette.butter.opacity(0.55)))
         }
         .accessibilityHidden(true)
     }
@@ -48,7 +48,7 @@ struct PaperBackground: View {
                     dots.addEllipse(in: CGRect(x: x, y: y, width: 1.6, height: 1.6))
                     index += 1
                 }
-                context.fill(dots, with: .color(Palette.ink.opacity(0.05)))
+                context.fill(dots, with: .color(Palette.line.opacity(0.05)))
             }
         }
         .ignoresSafeArea()

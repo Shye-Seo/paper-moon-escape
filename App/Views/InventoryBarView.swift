@@ -10,18 +10,18 @@ struct InventoryBarView: View {
         VStack(spacing: 6) {
             HStack(spacing: 6) {
                 Text("주머니")
-                    .font(.cartoon(12, weight: .heavy))
-                    .foregroundStyle(Palette.ink)
+                    .font(.cozy(12, weight: .semibold))
+                    .foregroundStyle(Palette.line)
                 Text("\(store.inventory.count)개")
-                    .font(.cartoon(11, weight: .semibold))
-                    .foregroundStyle(Palette.inkSoft)
+                    .font(.cozy(11, weight: .semibold))
+                    .foregroundStyle(Palette.lineSoft)
 
                 Spacer()
 
                 Text(store.selected.map { "\(store.itemName($0)) 선택됨" }
                      ?? "물건을 고른 뒤 씬에 쓰거나 다른 물건과 합치세요")
-                    .font(.cartoon(11, weight: .semibold))
-                    .foregroundStyle(store.selected == nil ? Palette.inkSoft.opacity(0.8) : Palette.coral)
+                    .font(.cozy(11, weight: .semibold))
+                    .foregroundStyle(store.selected == nil ? Palette.lineSoft.opacity(0.8) : Palette.rose)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -31,8 +31,8 @@ struct InventoryBarView: View {
                 HStack(spacing: 9) {
                     if store.inventory.isEmpty {
                         Text("아직 주머니가 비어 있다.")
-                            .font(.cartoon(12, weight: .semibold))
-                            .foregroundStyle(Palette.inkSoft.opacity(0.7))
+                            .font(.cozy(12, weight: .semibold))
+                            .foregroundStyle(Palette.lineSoft.opacity(0.7))
                             .padding(.vertical, compact ? 12 : 18)
                             .padding(.leading, 4)
                     }
@@ -61,14 +61,14 @@ struct InventoryBarView: View {
                     .font(.system(size: compact ? 20 : 24))
                     .frame(width: compact ? 38 : 44, height: compact ? 38 : 44)
                     .background(
-                        Circle().fill(isSelected ? Palette.mustard : Palette.cream)
+                        Circle().fill(isSelected ? Palette.butter : Palette.cream)
                     )
                     .overlay(
-                        Circle().stroke(Palette.ink, lineWidth: isSelected ? 3.5 : 2.5)
+                        Circle().stroke(Palette.lineSoft.opacity(isSelected ? 0.9 : 0.45), lineWidth: isSelected ? 1.6 : 1.1)
                     )
                 Text(verbatim: item.name)
-                    .font(.cartoon(9.5, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
+                    .font(.cozy(9.5, weight: .semibold))
+                    .foregroundStyle(Palette.line)
                     .lineLimit(1)
                     .frame(width: 58)
             }
@@ -76,7 +76,7 @@ struct InventoryBarView: View {
             .padding(.horizontal, 4)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? Palette.mustard.opacity(0.28) : Color.clear)
+                    .fill(isSelected ? Palette.butter.opacity(0.28) : Color.clear)
             )
             .scaleEffect(isSelected ? 1.06 : 1.0)
             .offset(y: isSelected ? -3 : 0)

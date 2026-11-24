@@ -14,36 +14,56 @@ struct TitleView: View {
                 Spacer(minLength: 12)
 
                 ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    Palette.candleGlow.opacity(0.42),
+                                    Palette.candleGlow.opacity(0.0)
+                                ],
+                                center: .center,
+                                startRadius: 12,
+                                endRadius: 155
+                            )
+                        )
+                        .frame(width: 310, height: 310)
+
                     MoonView()
                         .frame(width: 182, height: 182)
                         .rotationEffect(.degrees(-7))
 
-                    Text(verbatim: "🌧")
-                        .font(.system(size: 34))
-                        .offset(x: -78, y: 62)
+                    HStack(spacing: 13) {
+                        ForEach(0..<4, id: \.self) { _ in
+                            Capsule()
+                                .fill(Palette.dusk.opacity(0.30))
+                                .frame(width: 2, height: 16)
+                                .rotationEffect(.degrees(14))
+                        }
+                    }
+                    .offset(x: -84, y: 64)
 
-                    Text(verbatim: "🕊")
-                        .font(.system(size: 24))
-                        .offset(x: 88, y: float ? -48 : -34)
+                    CharacterAvatar(character: .pico)
+                        .scaleEffect(1.05)
+                        .offset(x: 64, y: float ? 64 : 60)
 
-                    Text(verbatim: "🧸")
-                        .font(.system(size: 26))
-                        .offset(x: float ? 54 : 62, y: 70)
+                    CharacterAvatar(character: .momo)
+                        .scaleEffect(0.9)
+                        .offset(x: 98, y: float ? 76 : 72)
                 }
                 .frame(height: 200)
 
                 VStack(spacing: 5) {
                     Text("종이달 다락방 탈출")
-                        .font(.cartoon(29, weight: .heavy))
-                        .foregroundStyle(Palette.ink)
+                        .font(.cozy(29, weight: .bold))
+                        .foregroundStyle(Palette.line)
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                     Text("Paper Moon Escape")
-                        .font(.cartoon(12.5, weight: .heavy))
-                        .foregroundStyle(Palette.inkSoft)
-                    Text("비 오는 토요일, 남매는 종이로 접힌 달 속으로 들어갔다.")
-                        .font(.cartoon(12, weight: .semibold))
-                        .foregroundStyle(Palette.inkSoft)
+                        .font(.cozy(12.5, weight: .semibold))
+                        .foregroundStyle(Palette.lineSoft)
+                    Text("비 오는 토요일, 모모와 고양이 피코는 종이로 접힌 달 속으로 들어갔다.")
+                        .font(.cozy(12, weight: .semibold))
+                        .foregroundStyle(Palette.lineSoft)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 28)
                         .padding(.top, 2)
@@ -54,18 +74,18 @@ struct TitleView: View {
                 VStack(spacing: 10) {
                     if store.hasSave {
                         Button("이어하기", action: store.continueGame)
-                            .buttonStyle(CartoonButtonStyle(fill: Palette.cobalt, textColor: Palette.cream))
+                            .buttonStyle(CozyButtonStyle(fill: Palette.dusk, textColor: Palette.cream))
                     }
                     Button("새로 시작", action: store.startNewGame)
-                        .buttonStyle(CartoonButtonStyle(fill: Palette.mustard))
+                        .buttonStyle(CozyButtonStyle(fill: Palette.butter))
                     Button("스테이지 선택", action: store.openStageSelect)
-                        .buttonStyle(CartoonButtonStyle(fill: Palette.cream))
+                        .buttonStyle(CozyButtonStyle(fill: Palette.cream))
                 }
                 .padding(.horizontal, 40)
 
                 Text("모모 & 피코의 종이 모험 · 세 장면")
-                    .font(.cartoon(10, weight: .semibold))
-                    .foregroundStyle(Palette.inkSoft.opacity(0.75))
+                    .font(.cozy(10, weight: .semibold))
+                    .foregroundStyle(Palette.lineSoft.opacity(0.75))
                     .padding(.bottom, 14)
             }
         }
@@ -91,7 +111,7 @@ struct StageSelectView: View {
                         store.backToTitle()
                     }
                     Text("스테이지 선택")
-                        .font(.cartoon(18, weight: .heavy))
+                        .font(.cozy(18, weight: .semibold))
                     Spacer()
                 }
                 .padding(.horizontal, 14)
@@ -103,8 +123,8 @@ struct StageSelectView: View {
                             stageCard(stage)
                         }
                         Text("앞 장면을 깨면 다음 장면이 열린다.")
-                            .font(.cartoon(11, weight: .semibold))
-                            .foregroundStyle(Palette.inkSoft.opacity(0.8))
+                            .font(.cozy(11, weight: .semibold))
+                            .foregroundStyle(Palette.lineSoft.opacity(0.8))
                             .padding(.top, 4)
                     }
                     .padding(.horizontal, 16)
@@ -129,21 +149,21 @@ struct StageSelectView: View {
                         .fill(Palette.stageTint(stage.id))
                         .frame(width: 46, height: 46)
                     Circle()
-                        .stroke(Palette.ink, lineWidth: 2.5)
+                        .stroke(Palette.lineSoft.opacity(0.45), lineWidth: 1.1)
                         .frame(width: 46, height: 46)
                     Text("\(stage.number)")
-                        .font(.cartoon(20, weight: .heavy))
-                        .foregroundStyle(Palette.ink)
+                        .font(.cozy(20, weight: .semibold))
+                        .foregroundStyle(Palette.line)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(stage.title)
-                        .font(.cartoon(16, weight: .heavy))
-                        .foregroundStyle(Palette.ink)
+                        .font(.cozy(16, weight: .bold))
+                        .foregroundStyle(Palette.line)
                         .multilineTextAlignment(.leading)
                     Text(stage.subtitle)
-                        .font(.cartoon(11.5, weight: .semibold))
-                        .foregroundStyle(Palette.inkSoft)
+                        .font(.cozy(11.5, weight: .semibold))
+                        .foregroundStyle(Palette.lineSoft)
                         .multilineTextAlignment(.leading)
                 }
 
@@ -151,7 +171,7 @@ struct StageSelectView: View {
 
                 Text(verbatim: isCleared ? "✔" : (unlocked ? "▶" : "🔒"))
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(Palette.ink)
+                    .foregroundStyle(Palette.line)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -186,23 +206,37 @@ struct EndingView: View {
                 Spacer(minLength: 10)
 
                 ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    Palette.candleGlow.opacity(0.38),
+                                    Palette.candleGlow.opacity(0.0)
+                                ],
+                                center: .center,
+                                startRadius: 8,
+                                endRadius: 120
+                            )
+                        )
+                        .frame(width: 260, height: 260)
+
                     MoonView(fill: Palette.cream)
                         .frame(width: 150, height: 150)
-                    Text(verbatim: "🎉")
-                        .font(.system(size: 38))
-                        .offset(x: 66, y: -52)
-                    Text(verbatim: "🕊")
-                        .font(.system(size: 26))
-                        .offset(x: -74, y: -40)
+
+                    CharacterAvatar(character: .pico)
+                        .offset(x: 52, y: 44)
+
+                    CharacterAvatar(character: .momo)
+                        .offset(x: -54, y: 40)
                 }
 
                 Text("탈출 성공!")
-                    .font(.cartoon(32, weight: .heavy))
-                    .foregroundStyle(Palette.ink)
+                    .font(.cozy(30, weight: .bold))
+                    .foregroundStyle(Palette.line)
 
                 Text("종이달이 온전해지고, 다락방 창으로 종이 계단이 내려왔다.")
-                    .font(.cartoon(12.5, weight: .semibold))
-                    .foregroundStyle(Palette.inkSoft)
+                    .font(.cozy(12.5, weight: .semibold))
+                    .foregroundStyle(Palette.lineSoft)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 30)
 
@@ -220,9 +254,9 @@ struct EndingView: View {
 
                 VStack(spacing: 10) {
                     Button("한 번 더 모험하기", action: store.playAgain)
-                        .buttonStyle(CartoonButtonStyle(fill: Palette.mustard))
+                        .buttonStyle(CozyButtonStyle(fill: Palette.butter))
                     Button("타이틀로", action: store.backToTitle)
-                        .buttonStyle(CartoonButtonStyle(fill: Palette.cream))
+                        .buttonStyle(CozyButtonStyle(fill: Palette.cream))
                 }
                 .padding(.bottom, 18)
             }
@@ -232,12 +266,12 @@ struct EndingView: View {
     private func summaryRow(_ title: String, _ value: String) -> some View {
         HStack {
             Text(verbatim: title)
-                .font(.cartoon(13, weight: .semibold))
-                .foregroundStyle(Palette.inkSoft)
+                .font(.cozy(13, weight: .semibold))
+                .foregroundStyle(Palette.lineSoft)
             Spacer()
             Text(verbatim: value)
-                .font(.cartoon(14, weight: .heavy))
-                .foregroundStyle(Palette.ink)
+                .font(.cozy(14, weight: .semibold))
+                .foregroundStyle(Palette.line)
         }
     }
 }

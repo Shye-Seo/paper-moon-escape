@@ -33,12 +33,12 @@ enum AtticStage {
         kind: .blocks,
         title: "네 색 블록 자물쇠",
         prompt: "벽 그림과 같은 순서로 블록을 놓아라",
-        clue: "벽 그림: 코랄 → 청록 → 머스타드 → 코발트",
+        clue: "벽 그림: 로즈 → 세이지 → 버터 → 라벤더",
         tokens: [
-            PuzzleToken(value: 0, label: "코랄", symbol: "🟠"),
-            PuzzleToken(value: 1, label: "코발트", symbol: "🔵"),
-            PuzzleToken(value: 2, label: "머스타드", symbol: "🟡"),
-            PuzzleToken(value: 3, label: "청록", symbol: "🟢")
+            PuzzleToken(value: 0, label: "로즈", symbol: "🟠"),
+            PuzzleToken(value: 1, label: "라벤더", symbol: "🔵"),
+            PuzzleToken(value: 2, label: "버터", symbol: "🟡"),
+            PuzzleToken(value: 3, label: "세이지", symbol: "🟢")
         ],
         solution: [0, 3, 2, 1],
         slotLabels: ["첫째", "둘째", "셋째", "넷째"],
@@ -78,7 +78,7 @@ enum AtticStage {
             blocked: "졸린 부엉이 시계지기가 눈을 감고 새근새근 잔다. 무언가 소리가 나야 깰 것 같다.",
             effects: [
                 .react(.owl, "😳"),
-                .say(.creature(name: "부엉이 시계지기", text: "부앙! 삐걱 소리에 눈이 번쩍 떴네. 이거나 가져가. 열쇠를 붙일 때 쓸 걸세.")),
+                .say(.creature(name: "부엉이 시계지기", text: "부엉, 삐걱 소리에 잠이 확 달아났구나. 이걸 가져가렴. 열쇠를 붙일 때 쓸 거란다.")),
                 .give(.glueBottle),
                 .flag(Flags.owlAwake)
             ],
@@ -127,7 +127,7 @@ enum AtticStage {
             glyph: "🖼",
             position: ScenePoint(0.20, 0.26),
             effects: [
-                .say(.narration("벽에 아이가 그린 그림이 있다. 코랄, 청록, 머스타드, 코발트 순서로 블록이 쌓여 있고 아래에 '이 순서!'라고 삐뚤빼뚤 적혀 있다.")),
+                .say(.narration("벽에 아이가 그린 그림이 있다. 로즈, 세이지, 버터, 라벤더 순서로 블록이 쌓여 있고 아래에 '이 순서!'라고 삐뚤빼뚤 적혀 있다.")),
                 .flag(Flags.sawPoster)
             ]
         ),
@@ -231,7 +231,7 @@ enum AtticStage {
             stage: .attic,
             doneIf: .flag(Flags.toyBoxOpen),
             levelOne: "장난감 창고 벽의 그림을 자세히 보자. 색 순서가 적혀 있다.",
-            levelTwo: "코랄, 청록, 머스타드, 코발트 순서대로 블록을 놓으면 상자가 열린다."
+            levelTwo: "로즈, 세이지, 버터, 라벤더 순서대로 블록을 놓으면 상자가 열린다."
         ),
         Hint(
             id: "attic.progress.4",
@@ -256,7 +256,7 @@ enum AtticStage {
         subtitle: "비 오는 토요일의 시작",
         rooms: [.atticLanding, .atticToyCloset, .atticMoonWindow],
         opening: "비 오는 토요일 오후, 다락방 문이 삐걱 열렸다. 종이로 접은 달이 빛나고, 바닥의 장난감들이 하나둘 고개를 들었다.",
-        closing: "종이달이 창을 가득 채웠다. 창틀 아래로 달빛이 종잇장 같은 길을 놓았고, 두 남매는 그 위로 조심조심 발을 내디뎠다. 다음은 거꾸로 자라는 온실.",
+        closing: "종이달이 창을 가득 채웠다. 창틀 아래로 달빛이 종잇장 같은 길을 놓았고, 모모와 고양이 피코는 그 위로 조심조심 발을 내디뎠다. 다음은 거꾸로 자라는 온실.",
         next: .greenhouse
     )
 }

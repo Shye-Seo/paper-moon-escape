@@ -155,7 +155,7 @@ enum GreenhouseStage {
                 .say(.creature(name: "개구리 합창단", text: "개굴! 우리 노래를 따라 불러 봐. 연못가 돌의 물빛 순서대로야.")),
                 .openPuzzle(.frogSong)
             ],
-            repeatText: "개구리들이 만족스럽게 꿀꺽, 하고 울음소리를 삼켰다."
+            repeatText: "개구리들이 만족스럽게 눈을 감고 작게 울었다."
         ),
         Hotspot(
             id: .pondShelf,
@@ -295,7 +295,7 @@ enum GreenhouseStage {
         title: "거꾸로 자라는 온실",
         subtitle: "노래가 물을 데려가는 곳",
         rooms: [.greenhouseVines, .greenhousePond, .greenhouseGlass],
-        opening: "거꾸로 자라는 덩굴 사이로 두 남매가 미끄러졌다. 흙 냄새, 젖은 이끼, 그리고 노래 소리가 가득한 온실.",
+        opening: "거꾸로 자라는 덩굴 사이로 모모와 고양이 피코가 미끄러졌다. 흙 냄새, 젖은 이끼, 그리고 노래 소리가 가득한 온실.",
         closing: "덩굴이 계단처럼 엮여 하늘로 뻗었다. 올라가며 뒤를 돌아보니 연못의 개구리들이 화음을 길게 늘여 배웅했다. 저 위엔 태엽이 멈춘 시계탑.",
         next: .clocktower
     )

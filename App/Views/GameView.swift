@@ -66,17 +66,17 @@ struct GameView: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(store.stage?.title ?? "종이달 다락방")
-                    .font(.cartoon(compact ? 12.5 : 14, weight: .heavy))
+                    .font(.cozy(compact ? 12.5 : 14, weight: .semibold))
                     .lineLimit(1)
                 Text(store.room.title + " · " + store.room.caption)
-                    .font(.cartoon(compact ? 10 : 11, weight: .semibold))
-                    .foregroundStyle(Palette.inkSoft)
+                    .font(.cozy(compact ? 10 : 11, weight: .semibold))
+                    .foregroundStyle(Palette.lineSoft)
                     .lineLimit(1)
             }
 
             Spacer(minLength: 4)
 
-            RoundIconButton(systemName: "lightbulb.fill", fill: Palette.mustard, accessibility: "힌트 보기") {
+            RoundIconButton(systemName: "lightbulb.fill", fill: Palette.butter, accessibility: "힌트 보기") {
                 store.requestHint()
             }
             RoundIconButton(systemName: "arrow.counterclockwise", accessibility: "스테이지 처음부터") {
@@ -138,9 +138,9 @@ struct GameView: View {
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Palette.ink, lineWidth: 3)
+                    .stroke(Palette.lineSoft.opacity(0.45), lineWidth: 1.2)
             )
-            .shadow(color: Palette.ink.opacity(0.16), radius: 0, x: 5, y: 6)
+            .shadow(color: Palette.shadow, radius: 10, x: 0, y: 4)
             .padding(.horizontal, 10)
         }
         .frame(minHeight: compact ? 160 : 300)
@@ -152,7 +152,7 @@ struct GameView: View {
         } label: {
             ZStack {
                 Circle()
-                    .stroke(Palette.mustard, lineWidth: 3)
+                    .stroke(Palette.butter, lineWidth: 1.3)
                     .frame(width: 54, height: 54)
                     .scaleEffect(pulse ? 1.22 : 1.0)
                     .opacity(pulse ? 0.0 : 0.8)
@@ -161,13 +161,13 @@ struct GameView: View {
                     .fill(Palette.cream.opacity(0.94))
                     .frame(width: 50, height: 50)
                 Circle()
-                    .stroke(Palette.ink, lineWidth: 3)
+                    .stroke(Palette.lineSoft.opacity(0.45), lineWidth: 1.1)
                     .frame(width: 50, height: 50)
 
                 Text(verbatim: hotspot.glyph)
                     .font(.system(size: 24))
             }
-            .shadow(color: Palette.ink.opacity(0.22), radius: 0, x: 2, y: 3)
+            .shadow(color: Palette.shadow, radius: 6, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .position(
@@ -187,8 +187,8 @@ struct GameView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else {
                 Text(store.room.caption)
-                    .font(.cartoon(compact ? 11 : 12, weight: .semibold))
-                    .foregroundStyle(Palette.inkSoft.opacity(0.8))
+                    .font(.cozy(compact ? 11 : 12, weight: .semibold))
+                    .foregroundStyle(Palette.lineSoft.opacity(0.8))
             }
         }
         .frame(height: compact ? 68 : 92)
@@ -231,11 +231,11 @@ struct NarrationBubble: View {
         case .narration:
             return Palette.cream
         case .momo:
-            return Palette.coral.opacity(0.22)
+            return Palette.rose.opacity(0.22)
         case .pico:
-            return Palette.cobalt.opacity(0.18)
+            return Palette.butter.opacity(0.26)
         case .creature:
-            return Palette.mint.opacity(0.24)
+            return Palette.sage.opacity(0.24)
         }
     }
 
@@ -247,12 +247,12 @@ struct NarrationBubble: View {
             VStack(alignment: .leading, spacing: 3) {
                 if let speaker {
                     Text(verbatim: speaker)
-                        .font(.cartoon(11, weight: .heavy))
-                        .foregroundStyle(Palette.inkSoft)
+                        .font(.cozy(11, weight: .semibold))
+                        .foregroundStyle(Palette.lineSoft)
                 }
                 Text(line.text)
-                    .font(.cartoon(13.5, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
+                    .font(.cozy(13.5, weight: .semibold))
+                    .foregroundStyle(Palette.line)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -269,18 +269,18 @@ struct StageFlashView: View {
     var body: some View {
         VStack(spacing: 6) {
             Text("스테이지 클리어")
-                .font(.cartoon(13, weight: .heavy))
-                .foregroundStyle(Palette.inkSoft)
+                .font(.cozy(13, weight: .semibold))
+                .foregroundStyle(Palette.lineSoft)
             Text(stage.title)
-                .font(.cartoon(24, weight: .heavy))
-                .foregroundStyle(Palette.ink)
+                .font(.cozy(24, weight: .bold))
+                .foregroundStyle(Palette.line)
             Text("다음 장면으로")
-                .font(.cartoon(12, weight: .semibold))
-                .foregroundStyle(Palette.inkSoft)
+                .font(.cozy(12, weight: .semibold))
+                .foregroundStyle(Palette.lineSoft)
         }
         .padding(.horizontal, 30)
         .padding(.vertical, 22)
-        .paperCard(fill: Palette.mustard, radius: 26)
-        .rotationEffect(.degrees(-2))
+        .paperCard(fill: Palette.butter.opacity(0.9), radius: 26)
+        .rotationEffect(.degrees(-1.2))
     }
 }

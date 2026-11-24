@@ -269,6 +269,7 @@ SWIFTUI_TYPES = {
     "Text", "Image", "Button", "VStack", "HStack", "ZStack", "Spacer", "ScrollView",
     "GeometryReader", "Canvas", "Path", "Color", "Font", "Circle", "Capsule",
     "RoundedRectangle", "Rectangle", "Ellipse", "Group", "ForEach", "Binding",
+    "Gradient", "RadialGradient", "LinearGradient",
     "StrokeStyle", "Animation", "Edge", "Axis", "Alignment",
     "CGFloat", "CGPoint", "CGRect", "CGSize", "CGAffineTransform",
     "Date", "UUID", "URL", "Data", "Set", "Array", "Dictionary", "String", "Int",

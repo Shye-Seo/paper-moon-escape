@@ -1,19 +1,56 @@
 import SwiftUI
 
-/// 굵은 잉크선 카툰 스타일의 도형과 붓 도구.
+/// 가는 코코아 선화와 부드러운 그림자로 그리는 도구.
+/// 굵은 검정 잉크선 대신 `Palette.line`을 1~2pt로 얇게 쓰고,
+/// 빛은 촛불색 라디얼 그라디언트로 번지게 한다.
 enum Brush {
-    static func ink(_ path: Path, in context: inout GraphicsContext, width: CGFloat = 3) {
-        context.stroke(path, with: .color(Palette.ink), lineWidth: width)
+    /// 모든 윤곽선의 기본 두께. 화면 크기와 무관하게 얇게 유지한다.
+    static let baseWidth: CGFloat = 1.5
+
+    static func line(_ path: Path, in context: inout GraphicsContext, width: CGFloat = baseWidth) {
+        context.stroke(
+            path,
+            with: .color(Palette.line.opacity(0.72)),
+            style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round)
+        )
     }
 
     static func paint(
         _ path: Path,
         in context: inout GraphicsContext,
         fill: Color,
-        width: CGFloat = 3
+        width: CGFloat = baseWidth
     ) {
         context.fill(path, with: .color(fill))
-        context.stroke(path, with: .color(Palette.ink), lineWidth: width)
+        line(path, in: &context, width: width)
+    }
+
+    /// 촛불·스탠드가 방 안으로 번지는 따뜻한 빛.
+    static func glow(
+        _ context: inout GraphicsContext,
+        center: CGPoint,
+        radius: CGFloat,
+        strength: Double = 0.55
+    ) {
+        let circle = Path(ellipseIn: CGRect(
+            x: center.x - radius,
+            y: center.y - radius,
+            width: radius * 2,
+            height: radius * 2
+        ))
+        context.fill(
+            circle,
+            with: .radialGradient(
+                Gradient(colors: [
+                    Palette.candleGlow.opacity(strength),
+                    Palette.candleGlow.opacity(strength * 0.35),
+                    Palette.candleGlow.opacity(0)
+                ]),
+                center: center,
+                startRadius: 0,
+                endRadius: radius
+            )
+        )
     }
 
     /// 살짝 찌그러진 손그림 느낌의 둥근 덩어리.
@@ -97,7 +134,7 @@ enum Brush {
         return path
     }
 
-    /// 위에서 아래로 흐르는 덩굴. `phase`로 살짝 흔든다.
+    /// 위에서 아래로 흐르는 덩굴. `sway`로 살짝 흔든다.
     static func vine(from: CGPoint, to: CGPoint, sway: CGFloat) -> Path {
         var path = Path()
         path.move(to: from)
@@ -121,7 +158,7 @@ enum Brush {
     }
 }
 
-/// 종이 카드처럼 보이는 배경. 굵은 외곽선 + 오프셋 그림자.
+/// 종이 카드처럼 보이는 배경. 가는 코코아 선 + 부드러운 그림자.
 struct PaperCard: ViewModifier {
     var fill: Color = Palette.cream
     var radius: CGFloat = 22
@@ -134,9 +171,9 @@ struct PaperCard: ViewModifier {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(Palette.ink, lineWidth: 3)
+                    .stroke(Palette.lineSoft.opacity(0.45), lineWidth: 1.2)
             )
-            .shadow(color: Palette.ink.opacity(0.20), radius: 0, x: 4, y: 5)
+            .shadow(color: Palette.shadow, radius: 10, x: 0, y: 4)
     }
 }
 
@@ -146,22 +183,22 @@ extension View {
     }
 }
 
-/// 카툰 버튼: 두꺼운 캡슐, 눌리면 살짝 줄어든다.
-struct CartoonButtonStyle: ButtonStyle {
-    var fill: Color = Palette.mustard
-    var textColor: Color = Palette.ink
+/// 포근한 캡슐 버튼. 눌리면 아주 살짝 가라앉는다.
+struct CozyButtonStyle: ButtonStyle {
+    var fill: Color = Palette.butter
+    var textColor: Color = Palette.line
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 17, weight: .heavy, design: .rounded))
+            .font(.system(size: 16, weight: .semibold, design: .rounded))
             .foregroundStyle(textColor)
             .padding(.horizontal, 22)
             .padding(.vertical, 12)
             .background(Capsule().fill(fill))
-            .overlay(Capsule().stroke(Palette.ink, lineWidth: 3))
-            .shadow(color: Palette.ink.opacity(0.22), radius: 0, x: 3, y: 4)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+            .overlay(Capsule().stroke(Palette.lineSoft.opacity(0.55), lineWidth: 1.2))
+            .shadow(color: Palette.shadow, radius: configuration.isPressed ? 3 : 9, x: 0, y: configuration.isPressed ? 1 : 4)
+            .scaleEffect(configuration.isPressed ? 0.975 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: configuration.isPressed)
     }
 }
 
@@ -175,12 +212,12 @@ struct RoundIconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 18, weight: .heavy, design: .rounded))
-                .foregroundStyle(Palette.ink)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(Palette.line)
                 .frame(width: 42, height: 42)
                 .background(Circle().fill(fill))
-                .overlay(Circle().stroke(Palette.ink, lineWidth: 3))
-                .shadow(color: Palette.ink.opacity(0.18), radius: 0, x: 2, y: 3)
+                .overlay(Circle().stroke(Palette.lineSoft.opacity(0.5), lineWidth: 1.2))
+                .shadow(color: Palette.shadow, radius: 7, x: 0, y: 3)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(verbatim: accessibility))

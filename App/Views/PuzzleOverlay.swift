@@ -13,7 +13,7 @@ struct HintOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.30)
+            Palette.line.opacity(0.26)
                 .ignoresSafeArea()
                 .onTapGesture { onClose() }
 
@@ -21,40 +21,40 @@ struct HintOverlay: View {
                 HStack(spacing: 8) {
                     Image(systemName: "lightbulb.fill")
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Palette.ink)
+                        .foregroundStyle(Palette.line)
                     Text(verbatim: title)
-                        .font(.cartoon(14, weight: .heavy))
+                        .font(.cozy(14, weight: .semibold))
                     Spacer()
                     Button(action: onClose) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .heavy))
-                            .foregroundStyle(Palette.ink)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Palette.line)
                             .padding(6)
                             .background(Circle().fill(Palette.cream))
-                            .overlay(Circle().stroke(Palette.ink, lineWidth: 2))
+                            .overlay(Circle().stroke(Palette.lineSoft.opacity(0.45), lineWidth: 1.1))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(verbatim: "힌트 닫기"))
                 }
 
                 Text(card.text)
-                    .font(.cartoon(15, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
+                    .font(.cozy(15, weight: .semibold))
+                    .foregroundStyle(Palette.line)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Palette.mustard.opacity(0.22))
+                            .fill(Palette.butter.opacity(0.22))
                     )
 
                 HStack(spacing: 10) {
                     if card.hasMore {
                         Button("한 번 더 알려줘", action: onMore)
-                            .buttonStyle(CartoonButtonStyle(fill: Palette.mustard))
+                            .buttonStyle(CozyButtonStyle(fill: Palette.butter))
                     }
                     Button("혼자 해 볼래", action: onClose)
-                        .buttonStyle(CartoonButtonStyle(fill: Palette.cream))
+                        .buttonStyle(CozyButtonStyle(fill: Palette.cream))
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
@@ -76,12 +76,12 @@ struct PuzzleOverlay: View {
     @State private var answer: [Int] = []
 
     private var blockColors: [Color] {
-        [Palette.coral, Palette.cobalt, Palette.mustard, Palette.mint, Palette.plum]
+        [Palette.rose, Palette.dusk, Palette.butter, Palette.sage, Palette.mauve]
     }
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.34)
+            Palette.line.opacity(0.30)
                 .ignoresSafeArea()
                 .onTapGesture { onClose() }
 
@@ -96,8 +96,8 @@ struct PuzzleOverlay: View {
                 }
                 if misses > 0 {
                     Text("아직 아니야. 단서를 다시 보자.")
-                        .font(.cartoon(12, weight: .heavy))
-                        .foregroundStyle(Palette.coral)
+                        .font(.cozy(12, weight: .semibold))
+                        .foregroundStyle(Palette.rose)
                 }
                 footer
             }
@@ -116,17 +116,17 @@ struct PuzzleOverlay: View {
             Text(verbatim: "🧩")
                 .font(.system(size: 20))
             Text(puzzle.title)
-                .font(.cartoon(16, weight: .heavy))
+                .font(.cozy(16, weight: .bold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Spacer()
             Button(action: onClose) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .heavy))
-                    .foregroundStyle(Palette.ink)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.line)
                     .padding(6)
                     .background(Circle().fill(Palette.cream))
-                    .overlay(Circle().stroke(Palette.ink, lineWidth: 2))
+                    .overlay(Circle().stroke(Palette.lineSoft.opacity(0.45), lineWidth: 1.1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text(verbatim: "퍼즐 닫기"))
@@ -136,11 +136,11 @@ struct PuzzleOverlay: View {
     private var prompt: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(puzzle.prompt)
-                .font(.cartoon(14, weight: .heavy))
+                .font(.cozy(14, weight: .semibold))
                 .fixedSize(horizontal: false, vertical: true)
             Text(puzzle.clue)
-                .font(.cartoon(12, weight: .semibold))
-                .foregroundStyle(Palette.inkSoft)
+                .font(.cozy(12, weight: .semibold))
+                .foregroundStyle(Palette.lineSoft)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,8 +174,8 @@ struct PuzzleOverlay: View {
                     .frame(width: 52, height: 52)
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(
-                        Palette.ink,
-                        style: StrokeStyle(lineWidth: 2.5, dash: token == nil ? [5, 4] : [])
+                        Palette.lineSoft.opacity(0.5),
+                        style: StrokeStyle(lineWidth: 1.1, dash: token == nil ? [5, 4] : [])
                     )
                     .frame(width: 52, height: 52)
                 if let token {
@@ -183,14 +183,14 @@ struct PuzzleOverlay: View {
                         .font(.system(size: 22))
                 } else {
                     Text(verbatim: "?")
-                        .font(.cartoon(16, weight: .heavy))
-                        .foregroundStyle(Palette.inkSoft.opacity(0.5))
+                        .font(.cozy(16, weight: .bold))
+                        .foregroundStyle(Palette.lineSoft.opacity(0.5))
                 }
             }
             if index < puzzle.slotLabels.count {
                 Text(verbatim: puzzle.slotLabels[index])
-                    .font(.cartoon(9.5, weight: .semibold))
-                    .foregroundStyle(Palette.inkSoft)
+                    .font(.cozy(9.5, weight: .semibold))
+                    .foregroundStyle(Palette.lineSoft)
                     .lineLimit(1)
             }
         }
@@ -201,8 +201,8 @@ struct PuzzleOverlay: View {
     private var tokens: some View {
         VStack(spacing: 6) {
             Text("아래에서 차례대로 골라 보자")
-                .font(.cartoon(11, weight: .semibold))
-                .foregroundStyle(Palette.inkSoft)
+                .font(.cozy(11, weight: .semibold))
+                .foregroundStyle(Palette.lineSoft)
 
             HStack(spacing: 8) {
                 ForEach(puzzle.tokens, id: \.value) { token in
@@ -219,11 +219,11 @@ struct PuzzleOverlay: View {
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(Palette.ink, lineWidth: 2.5)
+                                        .stroke(Palette.lineSoft.opacity(0.45), lineWidth: 1.1)
                                 )
                             Text(verbatim: token.label)
-                                .font(.cartoon(10, weight: .heavy))
-                                .foregroundStyle(Palette.ink)
+                                .font(.cozy(10, weight: .semibold))
+                                .foregroundStyle(Palette.line)
                         }
                     }
                     .buttonStyle(.plain)
@@ -247,18 +247,18 @@ struct PuzzleOverlay: View {
                                 .fill(Palette.cream)
                                 .frame(width: 62, height: 62)
                             Circle()
-                                .stroke(Palette.ink, lineWidth: 3)
+                                .stroke(Palette.lineSoft.opacity(0.55), lineWidth: 1.3)
                                 .frame(width: 62, height: 62)
                             Text(verbatim: dialSymbol(index))
                                 .font(.system(size: 26))
                         }
                         Text(verbatim: dialLabel(index))
-                            .font(.cartoon(10, weight: .heavy))
-                            .foregroundStyle(Palette.ink)
+                            .font(.cozy(10, weight: .semibold))
+                            .foregroundStyle(Palette.line)
                         if index < puzzle.slotLabels.count {
                             Text(verbatim: puzzle.slotLabels[index])
-                                .font(.cartoon(9, weight: .semibold))
-                                .foregroundStyle(Palette.inkSoft)
+                                .font(.cozy(9, weight: .semibold))
+                                .foregroundStyle(Palette.lineSoft)
                                 .lineLimit(1)
                         }
                     }
@@ -274,10 +274,10 @@ struct PuzzleOverlay: View {
     private var footer: some View {
         HStack(spacing: 10) {
             Button("지우기", action: reset)
-                .buttonStyle(CartoonButtonStyle(fill: Palette.cream))
+                .buttonStyle(CozyButtonStyle(fill: Palette.cream))
             Spacer()
             Button("확인", action: submit)
-                .buttonStyle(CartoonButtonStyle(fill: canSubmit ? Palette.mustard : Palette.cloud))
+                .buttonStyle(CozyButtonStyle(fill: canSubmit ? Palette.butter : Palette.cloud))
                 .disabled(!canSubmit)
         }
     }

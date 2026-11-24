@@ -1,7 +1,8 @@
 import SwiftUI
 import PaperMoonCore
 
-/// 방 하나를 종이 오려 붙인 카툰 배경으로 그린다.
+/// 방 하나를 코지 힐링 동화 그림처럼 그린다.
+/// 굵은 검정 외곽선 대신 얇은 코코아 선을 쓰고, 촛불·스탠드 빛은 라디얼 그라디언트로 번지게 한다.
 /// 모든 좌표는 캔버스 크기에 대한 비율로 계산해서 어떤 화면비에서도 어색하지 않게 한다.
 struct RoomSceneView: View {
     let room: Room
@@ -39,7 +40,7 @@ struct RoomSceneView: View {
         )
         let floor = Path(floorRect)
         context.fill(floor, with: .color(Palette.floor(room.art)))
-        context.stroke(floor, with: .color(Palette.ink), lineWidth: 3)
+        context.stroke(floor, with: .color(Palette.lineSoft.opacity(0.55)), lineWidth: 1.2)
 
         var boards = Path()
         var x: CGFloat = -20
@@ -48,7 +49,7 @@ struct RoomSceneView: View {
             boards.addLine(to: CGPoint(x: x - 26, y: size.height))
             x += 56
         }
-        context.stroke(boards, with: .color(Palette.ink.opacity(0.22)), lineWidth: 2)
+        context.stroke(boards, with: .color(Palette.lineSoft.opacity(0.16)), lineWidth: 1)
     }
 
     private func paintPaperGrain(_ context: inout GraphicsContext, _ size: CGSize) {
@@ -60,7 +61,7 @@ struct RoomSceneView: View {
             dots.addEllipse(in: CGRect(x: x, y: y, width: 2, height: 2))
             index += 1
         }
-        context.fill(dots, with: .color(Palette.ink.opacity(0.06)))
+        context.fill(dots, with: .color(Palette.lineSoft.opacity(0.05)))
     }
 
     private func pole(_ context: inout GraphicsContext, _ size: CGSize) {
@@ -71,7 +72,7 @@ struct RoomSceneView: View {
         beam.addLine(to: CGPoint(x: size.width * 0.52, y: size.height * 0.76))
         beam.addLine(to: CGPoint(x: size.width * 0.26, y: size.height * 0.76))
         beam.closeSubpath()
-        context.fill(beam, with: .color(Palette.cream.opacity(0.10)))
+        context.fill(beam, with: .color(Palette.candleGlow.opacity(0.08)))
     }
 
     // MARK: 스테이지 1
@@ -85,28 +86,31 @@ struct RoomSceneView: View {
         rail.move(to: CGPoint(x: 0, y: h * 0.56))
         rail.addLine(to: CGPoint(x: w * 0.16, y: h * 0.42))
         rail.addLine(to: CGPoint(x: w * 0.16, y: h * 0.76))
-        context.stroke(rail, with: .color(Palette.ink), lineWidth: 6)
+        context.stroke(rail, with: .color(Palette.lineSoft.opacity(0.6)), lineWidth: 1.4)
 
         // 창문
         let window = CGRect(x: w * 0.62, y: h * 0.14, width: w * 0.28, height: h * 0.34)
-        Brush.paint(Brush.rect(window, corner: 12), in: &context, fill: Palette.cobaltDeep)
+        Brush.paint(Brush.rect(window, corner: 14), in: &context, fill: Palette.duskDeep)
         context.stroke(
             Brush.rain(in: window.size, count: 9, slant: -6)
                 .applying(CGAffineTransform(translationX: window.minX, y: window.minY)),
-            with: .color(Palette.cream.opacity(0.8)),
-            lineWidth: 2
+            with: .color(Palette.cream.opacity(0.6)),
+            lineWidth: 1
         )
+
+        // 창 너머의 종이달
+        let moonCenter = CGPoint(x: window.midX + w * 0.03, y: window.minY + window.height * 0.40)
+        Brush.glow(&context, center: moonCenter, radius: w * 0.16, strength: 0.35)
+        let atticMoon = Brush.moon(center: moonCenter, radius: w * 0.055, bite: 3)
+        context.fill(atticMoon, with: .color(Palette.cream))
+        Brush.line(atticMoon, in: &context, width: 1)
+
         var frame = Path()
         frame.move(to: CGPoint(x: window.midX, y: window.minY))
         frame.addLine(to: CGPoint(x: window.midX, y: window.maxY))
         frame.move(to: CGPoint(x: window.minX, y: window.midY))
         frame.addLine(to: CGPoint(x: window.maxX, y: window.midY))
-        context.stroke(frame, with: .color(Palette.cream), lineWidth: 4)
-
-        // 종이달
-        let moonCenter = CGPoint(x: w * 0.80, y: h * 0.10)
-        let moonEmoji = context.resolve(Text(verbatim: "🌙").font(.system(size: 34)))
-        context.draw(moonEmoji, at: moonCenter)
+        context.stroke(frame, with: .color(Palette.cream.opacity(0.75)), lineWidth: 1.4)
 
         // 상자 두 개
         Brush.paint(
@@ -123,8 +127,11 @@ struct RoomSceneView: View {
         // 깔개
         var rug = Path()
         rug.addEllipse(in: CGRect(x: w * 0.30, y: h * 0.80, width: w * 0.44, height: h * 0.12))
-        context.fill(rug, with: .color(Palette.coral.opacity(0.55)))
-        context.stroke(rug, with: .color(Palette.ink), lineWidth: 3)
+        context.fill(rug, with: .color(Palette.rose.opacity(0.42)))
+        context.stroke(rug, with: .color(Palette.lineSoft.opacity(0.4)), lineWidth: 1.1)
+
+        // 상자 옆 촛불
+        Brush.glow(&context, center: CGPoint(x: w * 0.24, y: h * 0.60), radius: w * 0.22, strength: 0.30)
 
         pole(&context, size)
     }
@@ -143,14 +150,14 @@ struct RoomSceneView: View {
             )
             var tin = Path()
             tin.addEllipse(in: CGRect(x: w * 0.72, y: y - h * 0.06, width: w * 0.05, height: h * 0.06))
-            context.fill(tin, with: .color(Palette.mint))
-            context.stroke(tin, with: .color(Palette.ink), lineWidth: 2)
+            context.fill(tin, with: .color(Palette.sage))
+            context.stroke(tin, with: .color(Palette.lineSoft.opacity(0.5)), lineWidth: 1)
         }
 
         // 벽 그림
         let poster = CGRect(x: w * 0.08, y: h * 0.14, width: w * 0.22, height: h * 0.24)
         Brush.paint(Brush.rect(poster, corner: 6), in: &context, fill: Palette.cream)
-        let colors: [Color] = [Palette.coral, Palette.mint, Palette.mustard, Palette.cobalt]
+        let colors: [Color] = [Palette.rose, Palette.sage, Palette.butter, Palette.dusk]
         for index in 0..<4 {
             let block = CGRect(
                 x: poster.minX + poster.width * 0.18,
@@ -159,7 +166,7 @@ struct RoomSceneView: View {
                 height: poster.height * 0.11
             )
             context.fill(Path(roundedRect: block, cornerRadius: 3), with: .color(colors[index]))
-            context.stroke(Path(roundedRect: block, cornerRadius: 3), with: .color(Palette.ink), lineWidth: 2)
+            context.stroke(Path(roundedRect: block, cornerRadius: 3), with: .color(Palette.lineSoft.opacity(0.45)), lineWidth: 1)
         }
 
         // 바닥 블록
@@ -168,7 +175,7 @@ struct RoomSceneView: View {
             let y = h * (0.82 + CGFloat(index / 3) * 0.06)
             let block = CGRect(x: x, y: y, width: w * 0.055, height: w * 0.055)
             context.fill(Path(roundedRect: block, cornerRadius: 4), with: .color(colors[index % 4]))
-            context.stroke(Path(roundedRect: block, cornerRadius: 4), with: .color(Palette.ink), lineWidth: 2)
+            context.stroke(Path(roundedRect: block, cornerRadius: 4), with: .color(Palette.lineSoft.opacity(0.45)), lineWidth: 1)
         }
 
         // 장난감 상자
@@ -180,7 +187,10 @@ struct RoomSceneView: View {
         var lid = Path()
         lid.move(to: CGPoint(x: w * 0.30, y: h * 0.66))
         lid.addLine(to: CGPoint(x: w * 0.56, y: h * 0.66))
-        context.stroke(lid, with: .color(Palette.ink), lineWidth: 3)
+        context.stroke(lid, with: .color(Palette.lineSoft.opacity(0.6)), lineWidth: 1.1)
+
+        // 선반 위 스탠드 불빛
+        Brush.glow(&context, center: CGPoint(x: w * 0.82, y: h * 0.44), radius: w * 0.24, strength: 0.26)
 
         pole(&context, size)
     }
@@ -199,7 +209,8 @@ struct RoomSceneView: View {
             height: radius * 2
         ))
         context.fill(moon, with: .color(Palette.cream))
-        context.stroke(moon, with: .color(Palette.ink), lineWidth: 4)
+        Brush.line(moon, in: &context, width: 1.2)
+        Brush.glow(&context, center: center, radius: radius * 1.5, strength: 0.28)
 
         // 달의 잘린 자리
         let bite = Brush.blob(
@@ -208,8 +219,8 @@ struct RoomSceneView: View {
             wobble: 0.06,
             seed: 3
         )
-        context.fill(bite, with: .color(Palette.cobaltDeep))
-        context.stroke(bite, with: .color(Palette.ink), lineWidth: 3)
+        context.fill(bite, with: .color(Palette.duskDeep))
+        context.stroke(bite, with: .color(Palette.lineSoft.opacity(0.5)), lineWidth: 1.1)
 
         // 창틀
         var frame = Path()
@@ -219,7 +230,7 @@ struct RoomSceneView: View {
         frame.addLine(to: CGPoint(x: w * 0.80, y: h * 0.76))
         frame.move(to: CGPoint(x: 0, y: h * 0.55))
         frame.addLine(to: CGPoint(x: w, y: h * 0.55))
-        context.stroke(frame, with: .color(Color(red: 0.55, green: 0.40, blue: 0.28)), lineWidth: 8)
+        context.stroke(frame, with: .color(Palette.wood.opacity(0.85)), lineWidth: 2.2)
 
         // 별
         for index in 0..<7 {
@@ -232,7 +243,7 @@ struct RoomSceneView: View {
                 inner: 2.5,
                 points: 4
             )
-            context.fill(star, with: .color(Palette.mustard))
+            context.fill(star, with: .color(Palette.butter.opacity(0.9)))
         }
 
         // 바닥에 흐르는 달빛
@@ -242,7 +253,7 @@ struct RoomSceneView: View {
         light.addLine(to: CGPoint(x: w * 0.80, y: h))
         light.addLine(to: CGPoint(x: w * 0.20, y: h))
         light.closeSubpath()
-        context.fill(light, with: .color(Palette.mustard.opacity(0.18)))
+        context.fill(light, with: .color(Palette.butter.opacity(0.18)))
     }
 
     // MARK: 스테이지 2
@@ -259,8 +270,8 @@ struct RoomSceneView: View {
                 to: CGPoint(x: startX + 18, y: h * 0.62),
                 sway: index % 2 == 0 ? 34 : -30
             )
-            context.stroke(path, with: .color(Palette.ink), lineWidth: 5)
-            context.stroke(path, with: .color(Palette.mint.opacity(0.9)), lineWidth: 2)
+            context.stroke(path, with: .color(Palette.lineSoft.opacity(0.55)), lineWidth: 1.8)
+            context.stroke(path, with: .color(Palette.sage.opacity(0.95)), lineWidth: 1.1)
 
             for leafIndex in 1...3 {
                 let leaf = Path(ellipseIn: CGRect(
@@ -269,8 +280,8 @@ struct RoomSceneView: View {
                     width: 20,
                     height: 12
                 ))
-                context.fill(leaf, with: .color(Palette.mint))
-                context.stroke(leaf, with: .color(Palette.ink), lineWidth: 2)
+                context.fill(leaf, with: .color(Palette.sage))
+                context.stroke(leaf, with: .color(Palette.lineSoft.opacity(0.45)), lineWidth: 1)
             }
         }
 
@@ -281,12 +292,12 @@ struct RoomSceneView: View {
         pot.addLine(to: CGPoint(x: w * 0.40, y: h * 0.78))
         pot.addLine(to: CGPoint(x: w * 0.32, y: h * 0.78))
         pot.closeSubpath()
-        Brush.paint(pot, in: &context, fill: Palette.coral)
+        Brush.paint(pot, in: &context, fill: Palette.rose)
 
         var soil = Path()
         soil.addEllipse(in: CGRect(x: w * 0.28, y: h * 0.64, width: w * 0.16, height: h * 0.04))
         context.fill(soil, with: .color(Color(red: 0.38, green: 0.28, blue: 0.20)))
-        context.stroke(soil, with: .color(Palette.ink), lineWidth: 2)
+        context.stroke(soil, with: .color(Palette.lineSoft.opacity(0.45)), lineWidth: 1)
 
         // 물길
         var stream = Path()
@@ -295,7 +306,7 @@ struct RoomSceneView: View {
             to: CGPoint(x: w * 0.60, y: h * 0.76),
             control: CGPoint(x: w * 0.52, y: h * 0.74)
         )
-        context.stroke(stream, with: .color(Palette.cobalt), lineWidth: 5)
+        context.stroke(stream, with: .color(Palette.dusk), lineWidth: 1.8)
 
         pole(&context, size)
     }
@@ -306,8 +317,8 @@ struct RoomSceneView: View {
 
         // 연못
         let pond = CGRect(x: w * 0.08, y: h * 0.62, width: w * 0.84, height: h * 0.30)
-        context.fill(Path(ellipseIn: pond), with: .color(Palette.cobalt.opacity(0.55)))
-        context.stroke(Path(ellipseIn: pond), with: .color(Palette.ink), lineWidth: 3)
+        context.fill(Path(ellipseIn: pond), with: .color(Palette.dusk.opacity(0.42)))
+        context.stroke(Path(ellipseIn: pond), with: .color(Palette.lineSoft.opacity(0.4)), lineWidth: 1.1)
 
         // 물결
         for index in 0..<3 {
@@ -318,7 +329,7 @@ struct RoomSceneView: View {
                 to: CGPoint(x: pond.maxX - 30 - CGFloat(index) * 20, y: y),
                 control: CGPoint(x: pond.midX, y: y - 12)
             )
-            context.stroke(ripple, with: .color(Palette.cream.opacity(0.6)), lineWidth: 2)
+            context.stroke(ripple, with: .color(Palette.cream.opacity(0.5)), lineWidth: 1)
         }
 
         // 수련잎
@@ -329,8 +340,8 @@ struct RoomSceneView: View {
                 width: w * 0.14,
                 height: h * 0.05
             )
-            context.fill(Path(ellipseIn: pad), with: .color(Palette.mint))
-            context.stroke(Path(ellipseIn: pad), with: .color(Palette.ink), lineWidth: 2)
+            context.fill(Path(ellipseIn: pad), with: .color(Palette.sage))
+            context.stroke(Path(ellipseIn: pad), with: .color(Palette.lineSoft.opacity(0.45)), lineWidth: 1)
         }
 
         // 갈대
@@ -339,22 +350,23 @@ struct RoomSceneView: View {
             let x = w * (0.84 + CGFloat(index) * 0.035)
             reed.move(to: CGPoint(x: x, y: h * 0.76))
             reed.addLine(to: CGPoint(x: x - 8, y: h * 0.52))
-            context.stroke(reed, with: .color(Palette.ink), lineWidth: 3)
+            context.stroke(reed, with: .color(Palette.lineSoft.opacity(0.55)), lineWidth: 1.2)
             let tip = Path(ellipseIn: CGRect(x: x - 13, y: h * 0.48, width: 10, height: 18))
-            context.fill(tip, with: .color(Palette.mustard))
+            context.fill(tip, with: .color(Palette.butter))
         }
 
         // 반딧불이
         for index in 0..<8 {
             let x = w * (0.30 + CGFloat(index) * 0.07)
             let y = h * (0.26 + CGFloat((index * 17) % 20) / 100)
-            var glow = Path()
-            glow.addEllipse(in: CGRect(x: x, y: y, width: 26, height: 26))
-            context.fill(glow, with: .color(Palette.mustard.opacity(0.22)))
+            Brush.glow(&context, center: CGPoint(x: x + 13, y: y + 13), radius: 22, strength: 0.45)
             var dot = Path()
             dot.addEllipse(in: CGRect(x: x + 9, y: y + 9, width: 8, height: 8))
             context.fill(dot, with: .color(Palette.cream))
         }
+
+        // 연못 위로 내려오는 달빛
+        Brush.glow(&context, center: CGPoint(x: w * 0.52, y: h * 0.40), radius: w * 0.55, strength: 0.16)
     }
 
     private func paintGlassHouse(_ context: inout GraphicsContext, _ size: CGSize) {
@@ -375,7 +387,7 @@ struct RoomSceneView: View {
             panes.addLine(to: CGPoint(x: w, y: y))
             y += h * 0.16
         }
-        context.stroke(panes, with: .color(Palette.mint.opacity(0.35)), lineWidth: 2)
+        context.stroke(panes, with: .color(Palette.sage.opacity(0.35)), lineWidth: 1.1)
 
         // 거꾸로 자라는 나무
         var trunk = Path()
@@ -384,7 +396,7 @@ struct RoomSceneView: View {
             to: CGPoint(x: w * 0.30, y: h * 0.46),
             control: CGPoint(x: w * 0.24, y: h * 0.24)
         )
-        context.stroke(trunk, with: .color(Color(red: 0.45, green: 0.32, blue: 0.24)), lineWidth: 9)
+        context.stroke(trunk, with: .color(Palette.wood.opacity(0.85)), lineWidth: 2.4)
 
         for index in 0..<7 {
             let leaf = Brush.blob(
@@ -396,16 +408,16 @@ struct RoomSceneView: View {
                 wobble: 0.14,
                 seed: index + 2
             )
-            context.fill(leaf, with: .color(Palette.mint.opacity(0.85)))
-            context.stroke(leaf, with: .color(Palette.ink), lineWidth: 2)
+            context.fill(leaf, with: .color(Palette.sage.opacity(0.85)))
+            context.stroke(leaf, with: .color(Palette.lineSoft.opacity(0.4)), lineWidth: 1)
         }
 
         // 달빛 웅덩이
         let pool = CGRect(x: w * 0.56, y: h * 0.30, width: w * 0.32, height: h * 0.22)
-        context.fill(Path(ellipseIn: pool), with: .color(Palette.mustard.opacity(0.16)))
+        context.fill(Path(ellipseIn: pool), with: .color(Palette.butter.opacity(0.16)))
 
         // 반딧불 랜턴 빛이 스미는 정도만 남긴다
-        context.fill(Path(CGRect(x: 0, y: 0, width: w, height: h)), with: .color(Palette.mustard.opacity(0.05)))
+        Brush.glow(&context, center: CGPoint(x: w * 0.52, y: h * 0.55), radius: w * 0.48, strength: 0.16)
     }
 
     // MARK: 스테이지 3
@@ -423,20 +435,23 @@ struct RoomSceneView: View {
             step.addLine(to: CGPoint(x: w * (0.86 - CGFloat(index) * 0.02), y: y + h * 0.05))
             step.addLine(to: CGPoint(x: w * (0.44 - CGFloat(index) * 0.03), y: y + h * 0.05))
             step.closeSubpath()
-            Brush.paint(step, in: &context, fill: Color(red: 0.52, green: 0.42, blue: 0.44), width: 2)
+            Brush.paint(step, in: &context, fill: Palette.wood.opacity(0.75), width: 1.1)
         }
 
         // 진자
         var rod = Path()
         rod.move(to: CGPoint(x: w * 0.30, y: h * 0.10))
         rod.addLine(to: CGPoint(x: w * 0.36, y: h * 0.48))
-        context.stroke(rod, with: .color(Palette.mustard), lineWidth: 5)
+        context.stroke(rod, with: .color(Palette.butter), lineWidth: 1.8)
         let bob = Path(ellipseIn: CGRect(x: w * 0.32, y: h * 0.46, width: w * 0.09, height: w * 0.09))
-        Brush.paint(bob, in: &context, fill: Palette.mustard)
+        Brush.paint(bob, in: &context, fill: Palette.butter)
+
+        // 계단 스탠드 불빛
+        Brush.glow(&context, center: CGPoint(x: w * 0.36, y: h * 0.52), radius: w * 0.26, strength: 0.24)
 
         // 창
         let slit = CGRect(x: w * 0.70, y: h * 0.14, width: w * 0.10, height: h * 0.26)
-        Brush.paint(Brush.rect(slit, corner: 8), in: &context, fill: Palette.cobaltDeep)
+        Brush.paint(Brush.rect(slit, corner: 8), in: &context, fill: Palette.duskDeep)
         context.fill(Path(slit), with: .color(Palette.cream.opacity(0.18)))
 
         pole(&context, size)
@@ -451,10 +466,10 @@ struct RoomSceneView: View {
             (CGPoint(x: w * 0.58, y: h * 0.52), min(w, h) * 0.10, 10),
             (CGPoint(x: w * 0.78, y: h * 0.32), min(w, h) * 0.07, 9)
         ]
-        let fills: [Color] = [Palette.mustard, Palette.coral, Palette.mint]
+        let fills: [Color] = [Palette.butter, Palette.rose, Palette.sage]
         for (index, gear) in gears.enumerated() {
             let path = Brush.gear(center: gear.0, radius: gear.1, teeth: gear.2)
-            Brush.paint(path, in: &context, fill: fills[index], width: 3)
+            Brush.paint(path, in: &context, fill: fills[index], width: 1.4)
             let hub = Path(ellipseIn: CGRect(
                 x: gear.0.x - gear.1 * 0.22,
                 y: gear.0.y - gear.1 * 0.22,
@@ -462,7 +477,7 @@ struct RoomSceneView: View {
                 height: gear.1 * 0.44
             ))
             context.fill(hub, with: .color(Palette.cream))
-            context.stroke(hub, with: .color(Palette.ink), lineWidth: 2)
+            context.stroke(hub, with: .color(Palette.lineSoft.opacity(0.45)), lineWidth: 1)
         }
 
         // 파이프
@@ -472,7 +487,14 @@ struct RoomSceneView: View {
         pipes.addLine(to: CGPoint(x: w * 0.24, y: h * 0.76))
         pipes.move(to: CGPoint(x: w * 0.66, y: h * 0.76))
         pipes.addLine(to: CGPoint(x: w * 0.66, y: h * 0.60))
-        context.stroke(pipes, with: .color(Palette.cobalt), lineWidth: 8)
+        context.stroke(pipes, with: .color(Palette.dusk.opacity(0.85)), lineWidth: 2.2)
+
+        // 촛농이 굳은 자리의 촛불
+        Brush.glow(&context, center: CGPoint(x: w * 0.38, y: h * 0.46), radius: w * 0.30, strength: 0.30)
+        let candleBody = Brush.rect(CGRect(x: w * 0.36, y: h * 0.52, width: w * 0.045, height: h * 0.10), corner: 2)
+        Brush.paint(candleBody, in: &context, fill: Palette.cream)
+        let flame = Path(ellipseIn: CGRect(x: w * 0.373, y: h * 0.46, width: w * 0.014, height: h * 0.05))
+        context.fill(flame, with: .color(Palette.candle))
 
         pole(&context, size)
     }
@@ -494,17 +516,18 @@ struct RoomSceneView: View {
             control: CGPoint(x: w * 0.70, y: h * 0.28)
         )
         bell.closeSubpath()
-        Brush.paint(bell, in: &context, fill: Palette.mustard)
+        Brush.paint(bell, in: &context, fill: Palette.butter)
+        Brush.glow(&context, center: CGPoint(x: w * 0.50, y: h * 0.36), radius: w * 0.45, strength: 0.30)
 
         var rope = Path()
         rope.move(to: CGPoint(x: w * 0.50, y: 0))
         rope.addLine(to: CGPoint(x: w * 0.50, y: h * 0.18))
-        context.stroke(rope, with: .color(Palette.ink), lineWidth: 4)
+        context.stroke(rope, with: .color(Palette.lineSoft.opacity(0.6)), lineWidth: 1.4)
 
         // 종 아래 달 홈
         let socket = Path(ellipseIn: CGRect(x: w * 0.46, y: h * 0.50, width: w * 0.08, height: w * 0.08))
-        context.fill(socket, with: .color(Palette.cobaltDeep))
-        context.stroke(socket, with: .color(Palette.ink), lineWidth: 2)
+        context.fill(socket, with: .color(Palette.duskDeep))
+        context.stroke(socket, with: .color(Palette.lineSoft.opacity(0.5)), lineWidth: 1)
 
         // 별
         for index in 0..<10 {
@@ -526,6 +549,6 @@ struct RoomSceneView: View {
         stairs.addLine(to: CGPoint(x: w * 0.92, y: h * 0.20))
         stairs.addLine(to: CGPoint(x: w * 0.86, y: h * 0.20))
         stairs.addLine(to: CGPoint(x: w * 0.96, y: h * 0.32))
-        context.stroke(stairs, with: .color(Palette.cream.opacity(0.7)), lineWidth: 3)
+        context.stroke(stairs, with: .color(Palette.cream.opacity(0.7)), lineWidth: 1.3)
     }
 }
